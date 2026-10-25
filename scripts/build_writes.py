@@ -66,6 +66,30 @@ def apply_approval(sheet, diff, approved, cfg):
     return out
 
 
+def build_change_log(diff, run):
+    """Every queue entry (KEEP included, so the web app has each idea's test)
+    plus drops, with the Editor's final verdict per idea. Must stay valid JSON
+    under the 50,000-character cell limit, so trim fields rather than text."""
+    review_path = run / "review.json"
+    review = read_json(review_path) if review_path.exists() else {"items": []}
+    by_date = {i["date"]: i for i in review.get("items", [])}
+    entries = []
+    for e in diff:
+        e = dict(e)
+        item = by_date.get(e.get("date")) if e["op"] != "DROP" else None
+        if item:
+            e["editor"] = {k: item.get(k) for k in ("avg", "potential", "issues", "duplicate_of")}
+        entries.append(e)
+    text = json.dumps(entries, ensure_ascii=False)
+    for field in ("rationale", "was"):
+        if len(text) <= 45000:
+            break
+        for e in entries:
+            e.pop(field, None)
+        text = json.dumps(entries, ensure_ascii=False)
+    return text
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
@@ -119,7 +143,7 @@ def main():
     for e in diff:
         ops[e["op"]] = ops.get(e["op"], 0) + 1
     suggestions = "; ".join(f"{x['type']}: {x['name']} ({x['why']})" for x in proposal.get("suggestions", []))
-    change_log = json.dumps([e for e in diff if e["op"] != "KEEP"], ensure_ascii=False)[:45000]
+    change_log = build_change_log(diff, run)
     n = a.runs_next_row
     value_writes.append({"range": f"'{sh['runs_tab']}'!A{n}:L{n}", "values": [[
         a.run_id, run_date, proposal.get("summary", ""), proposal.get("feedback", ""), suggestions,

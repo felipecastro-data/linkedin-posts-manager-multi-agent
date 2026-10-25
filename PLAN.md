@@ -1,6 +1,6 @@
 # LinkedIn Social Media Manager (multi-agent) — Plan v0.2
 
-Status: Phase 2 done. First run (r20261025-0927) applied to the sheet on 2026-10-25. Next: Phase 3 web app.
+Status: Phases 1-3 done. Web app v1 deployed 2026-10-25.
 
 ## Goal
 
@@ -176,7 +176,17 @@ webapp/                               Apps Script project (Phase 3, clasp)
 2. **Pipeline**: build the skill, agents and scripts. Run in dry-run mode
    (proposal and diff, no writes) until the proposals look right, then turn
    on writing.
-3. **Web app**: Apps Script reading `Post Scores` and `Agent Runs`; layout
-   modeled on the LinkedIn Review web app, focused on posts (score per post,
-   pillar and lens coverage, Strategist feedback), liquid-glass design.
-   Design discussion when Phase 2 is done.
+3. **Web app** (done, v1): standalone Apps Script project "LinkedIn Posts"
+   (script `1UbQiX5-a9SMul4dZFPtgB_avAlfKGp-bniPTEFx7D0mBAQa4vxObDoEO`), read-only,
+   deployed as Execute as me / Only myself:
+   https://script.google.com/macros/s/AKfycbz_iGxfRoWtolsp-7y5cDG6IalsLCMKu2mYG-gjVKL3MxvRlUlMWf4Kq1suYsSMFwou/exec
+   - Source in `webapp/` (Code.js reads the three tabs; Styles.html reuses the LinkedIn
+     Review design system; App.html holds the five tabs: Overview, Queue, Posts,
+     Coverage, Runs).
+   - Local preview: `python3 scripts/preview_webapp.py runs/<id>`, then the
+     `webapp-preview` server in `.claude/launch.json`.
+   - Ship changes: `clasp push -f`, then
+     `clasp update-deployment AKfycbz_iGxfRoWtolsp-7y5cDG6IalsLCMKu2mYG-gjVKL3MxvRlUlMWf4Kq1suYsSMFwou`
+     so the URL stays the same.
+   - Editor verdicts (avg, potential, issues) are stored per idea in the Agent Runs
+     Change Log, which now lists every queue entry, KEEP included.

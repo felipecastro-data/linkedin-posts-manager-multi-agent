@@ -1,4 +1,4 @@
 runs/
 .DS_Store
 __pycache__/
-.clasp.json
+webapp/preview/
