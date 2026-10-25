@@ -1,0 +1,56 @@
+# Strategy settings for /linkedin-ideas. Read by the orchestrator, the
+# agents and the scripts in scripts/.
+
+[sheet]
+spreadsheet_id = "1zKbL54y6twj1ySJu1zjPuJwoo8frfXE1aBc82jsbMsA"
+tab = "LinkedIn Posts"
+read_range = "'LinkedIn Posts'!A1:I300"
+schedule_table_id = "332332752"
+schedule_sheet_id = 330526701
+schedule_first_col = "B"
+schedule_last_col = "I"
+schedule_header_row = 21
+score_tab = "Post Scores"
+score_table_id = "2078286160"
+score_sheet_id = 330526702
+runs_tab = "Agent Runs"
+runs_table_id = "2104011379"
+runs_sheet_id = 330526703
+
+[status]
+posted = "Created & Posted"         # read-only
+scheduled = "Created & Scheduled"   # read-only
+queued = "Not Created / In Queue"   # agent may add, edit, drop, move
+dropped = "Dropped"                 # date cleared, moved to bottom, never re-proposed
+
+[linkedin]
+profile_url = "https://www.linkedin.com/in/felipecastro-data/"
+activity_url = "https://www.linkedin.com/in/felipecastro-data/recent-activity/all/"
+match_tolerance_days = 3
+
+[schedule]
+weekday = 5                  # Python weekday(): Saturday
+horizon_saturdays = 13       # always keep the next 13 Saturdays covered
+skip_holidays = false        # post every Saturday
+rework_backlog = true        # queued ideas beyond the horizon can be edited too
+
+[rotation]
+window_saturdays = 13               # sliding window for the max-per-window rules
+pillar_max_per_window = 2
+pillar_no_back_to_back = true
+pillar_lens_cooldown_weeks = 12
+lens_max_per_window = 2
+prioritize_unused = true            # soft rule for the Strategist
+comparison_max_ratio = 0.25         # at most 1 in 4 queued topics framed as "X vs Y"
+skip_weak_pairs = true              # soft rule: do not force pillar x lens pairs that don't fit
+
+[ideas]
+topic_max_words = 25
+require_test = true
+min_potential_score = 3.5
+min_dimension_score = 3
+editor_revision_rounds = 1
+can_suggest_pillars_lenses = true   # feedback only, never edits those tables
+
+[scoring]
+engagement_weight = 0               # recorded, never used in decisions
