@@ -340,23 +340,22 @@ function android(a){
   const acTop=box(.2,.012,.014,accM);acTop.position.set(.2,H/2+.006,D/2-.03);head.add(acTop);
   const acSide=box(.012,.012,.16,accM);acSide.position.set(W/2+.006,.24,-.16);head.add(acSide);
   const label=box(.004,.02,.06,accM);label.position.set(W/2+.006,-.2,.2);head.add(label);
-  // right ear module + fin
-  const ear=new T.Group();ear.position.set(W/2+.05,-.02,-.06);head.add(ear);
-  const disk=cyl(.23,.23,.12,shell,40);disk.rotation.z=Math.PI/2;ear.add(disk);
-  const disk2=cyl(.19,.21,.03,shell2,40);disk2.rotation.z=Math.PI/2;disk2.position.x=.07;ear.add(disk2);
-  const ring=new T.Mesh(new T.TorusGeometry(.14,.016,10,40),metalM);ring.rotation.y=Math.PI/2;ring.position.x=.087;ear.add(ring);
-  const hub=cyl(.055,.055,.03,metalM,24);hub.rotation.z=Math.PI/2;hub.position.x=.09;ear.add(hub);
-  const arc=new T.Mesh(new T.TorusGeometry(.175,.008,6,40,Math.PI*.7),accM);arc.rotation.y=Math.PI/2;arc.rotation.x=Math.PI*.95;arc.position.x=.088;ear.add(arc);
-  const arm=box(.07,.26,.09,shell2,.02);arm.position.set(.07,.16,-.05);arm.rotation.z=-.28;ear.add(arm);
-  const fin=new T.Group();fin.position.set(.13,.34,-.08);fin.rotation.set(-.32,0,-.3);ear.add(fin);
-  const plate=box(.055,.5,.2,shell,.02,3);plate.position.y=.2;fin.add(plate);
-  const finAcc=box(.012,.3,.012,accM);finAcc.position.set(.03,.17,.1);fin.add(finAcc);
-  const finScr=box(.006,.16,.09,new T.MeshStandardMaterial({color:0x3a3d44,roughness:.5,metalness:.4}),.004);finScr.position.set(.03,.3,-.01);fin.add(finScr);
+  // ear module + fin on both sides (the left one is a mirror of the right)
+  const finScrM=new T.MeshStandardMaterial({color:0x3a3d44,roughness:.5,metalness:.4});
+  [1,-1].forEach(side=>{
+    const ear=new T.Group();ear.position.set(side*(W/2+.05),-.02,-.06);ear.scale.x=side;head.add(ear);
+    const disk=cyl(.23,.23,.12,shell,40);disk.rotation.z=Math.PI/2;ear.add(disk);
+    const disk2=cyl(.19,.21,.03,shell2,40);disk2.rotation.z=Math.PI/2;disk2.position.x=.07;ear.add(disk2);
+    const ring=new T.Mesh(new T.TorusGeometry(.14,.016,10,40),metalM);ring.rotation.y=Math.PI/2;ring.position.x=.087;ear.add(ring);
+    const hub=cyl(.055,.055,.03,metalM,24);hub.rotation.z=Math.PI/2;hub.position.x=.09;ear.add(hub);
+    const arc=new T.Mesh(new T.TorusGeometry(.175,.008,6,40,Math.PI*.7),accM);arc.rotation.y=Math.PI/2;arc.rotation.x=Math.PI*.95;arc.position.x=.088;ear.add(arc);
+    const arm=box(.07,.26,.09,shell2,.02);arm.position.set(.07,.16,-.05);arm.rotation.z=-.28;ear.add(arm);
+    const fin=new T.Group();fin.position.set(.13,.34,-.08);fin.rotation.set(-.32,0,-.3);ear.add(fin);
+    const plate=box(.055,.5,.2,shell,.02,3);plate.position.y=.2;fin.add(plate);
+    const finAcc=box(.012,.3,.012,accM);finAcc.position.set(.03,.17,.1);fin.add(finAcc);
+    const finScr=box(.006,.16,.09,finScrM,.004);finScr.position.set(.03,.3,-.01);fin.add(finScr);
+  });
   parts.antTip=null;
-  // left ear disc
-  const earL=new T.Group();earL.position.set(-W/2-.04,-.02,-.06);head.add(earL);
-  const dL=cyl(.17,.17,.1,shell,36);dL.rotation.z=Math.PI/2;earL.add(dL);
-  const rL=new T.Mesh(new T.TorusGeometry(.1,.012,8,32),metalM);rL.rotation.y=Math.PI/2;rL.position.x=-.052;earL.add(rL);
 
   parts.eyeBase=eyeCol;
   parts.eyes.forEach(e=>{e.userData.bs=e.scale.clone();e.userData.ax="y";const g=new T.Sprite(new T.SpriteMaterial({map:O.glow,color:eyeCol,transparent:true,opacity:.5,blending:T.AdditiveBlending,depthWrite:false}));g.scale.set(.42,.42,1);g.position.copy(e.position);g.position.z+=.04;head.add(g);parts.glows.push(g)});
@@ -507,26 +506,73 @@ function plant(x,z,pot,h,n,seed,y0){
 
 function city(){
   const {scene}=O,w=O.window;
-  O.cityCanvas=document.createElement("canvas");O.cityCanvas.width=1024;O.cityCanvas.height=640;O.cityTex=tex(O.cityCanvas);
+  O.cityCanvas=document.createElement("canvas");O.cityCanvas.width=1536;O.cityCanvas.height=960;O.cityTex=tex(O.cityCanvas);
   const pl=new T.Mesh(new T.PlaneGeometry(w.w+1.6,w.h+.8),new T.MeshBasicMaterial({map:O.cityTex,toneMapped:false}));
   pl.rotation.y=Math.PI/2;at(pl,w.x-.32,w.y-.05,w.z);scene.add(pl);
 }
+/* Seattle from the office window: Mount Rainier behind, the Olympics and foothills,
+   downtown towers, the Space Needle on the left and Elliott Bay in front. */
 function drawCity(dark){
   const c=O.cityCanvas,g=c.getContext("2d"),W=c.width,H=c.height;const r=rnd(42);
-  const sky=g.createLinearGradient(0,0,0,H);
-  if(dark){sky.addColorStop(0,"#0b1222");sky.addColorStop(.7,"#1f2846");sky.addColorStop(1,"#3b3652")}else{sky.addColorStop(0,"#b7d1e2");sky.addColorStop(.7,"#e4eef2");sky.addColorStop(1,"#f4ede2")}
+  // sky
+  const sky=g.createLinearGradient(0,0,0,H*.75);
+  if(dark){sky.addColorStop(0,"#070c1a");sky.addColorStop(.6,"#17203b");sky.addColorStop(1,"#3a3654")}
+  else{sky.addColorStop(0,"#8fbbe0");sky.addColorStop(.55,"#c9dff0");sky.addColorStop(1,"#f3e9dc")}
   g.fillStyle=sky;g.fillRect(0,0,W,H);
-  if(dark){for(let i=0;i<60;i++){g.fillStyle=`rgba(255,255,255,${.3+r()*.5})`;g.fillRect(r()*W,r()*H*.45,1.5,1.5)}}
-  const tower=(x,bw,bh,side,col,winA)=>{const y=H-bh;
-    g.fillStyle=col;g.fillRect(x,y,bw,bh);g.fillStyle=shade(col,dark?-.06:-.12);g.fillRect(x+bw,y+side*.35,side,bh);
-    g.fillStyle=shade(col,dark?.04:.05);g.fillRect(x-2,y-6,bw+side+2,8);
-    for(let yy=y+14;yy<H-6;yy+=18)for(let xx=x+8;xx<x+bw-10;xx+=15){const lit=dark&&r()<.42;g.fillStyle=lit?`rgba(255,214,150,${.7+r()*.3})`:dark?"rgba(14,17,25,.85)":`rgba(96,112,128,${winA})`;g.fillRect(xx,yy,9,11)}};
-  const far=dark?["#262b38","#2d3242"]:["#dfe6ea","#e8e1d2"];
-  for(let i=0;i<16;i++){const bw=50+r()*90,bh=H*(.35+r()*.35);tower(r()*W-30,bw,bh,10,far[i%2],.18)}
-  if(!dark){g.fillStyle="rgba(240,244,246,.45)";g.fillRect(0,0,W,H)}
-  const near=dark?["#323848","#3a4052","#2e3444"]:["#eedfc2","#e3cfa8","#f2e8d6"];
-  [[60,170,.82],[300,140,.62],[520,190,.95],[790,150,.7]].forEach(([x,bw,f],i)=>tower(x,bw,H*f,26,near[i%3],.32));
-  if(!dark){const haze=g.createLinearGradient(0,H*.5,0,H);haze.addColorStop(0,"rgba(255,255,255,0)");haze.addColorStop(1,"rgba(255,255,255,.35)");g.fillStyle=haze;g.fillRect(0,0,W,H)}
+  if(dark){for(let i=0;i<140;i++){g.fillStyle=`rgba(255,255,255,${.25+r()*.6})`;const x=r()*W,y=r()*H*.5;g.fillRect(x,y,1.6,1.6)}
+    g.fillStyle="rgba(255,248,225,.92)";g.beginPath();g.arc(W*.86,H*.14,26,0,7);g.fill();
+    const mg=g.createRadialGradient(W*.86,H*.14,20,W*.86,H*.14,120);mg.addColorStop(0,"rgba(255,248,225,.25)");mg.addColorStop(1,"rgba(255,248,225,0)");g.fillStyle=mg;g.fillRect(W*.86-120,H*.14-120,240,240)}
+  else{for(let i=0;i<5;i++){const x=r()*W,y=H*(.08+r()*.18),w=180+r()*220;const cg=g.createRadialGradient(x,y,4,x,y,w/2);cg.addColorStop(0,"rgba(255,255,255,.55)");cg.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=cg;g.beginPath();g.ellipse(x,y,w/2,w/7,0,0,7);g.fill()}}
+  // Mount Rainier
+  const mx=W*.62,top=H*.13,baseY=H*.6,half=W*.34;
+  const mtn=[[mx-half,baseY],[mx-half*.55,H*.42],[mx-half*.3,H*.3],[mx-half*.12,H*.19],[mx-half*.03,top+6],[mx+half*.04,top],[mx+half*.13,H*.18],[mx+half*.32,H*.31],[mx+half*.58,H*.44],[mx+half,baseY]];
+  const path=()=>{g.beginPath();g.moveTo(mtn[0][0],mtn[0][1]);mtn.slice(1).forEach(p=>g.lineTo(p[0],p[1]));g.closePath()};
+  const mg=g.createLinearGradient(0,top,0,baseY);
+  if(dark){mg.addColorStop(0,"#8d97b8");mg.addColorStop(.35,"#4a5478");mg.addColorStop(1,"#252c45")}else{mg.addColorStop(0,"#ffffff");mg.addColorStop(.35,"#e9eff6");mg.addColorStop(.62,"#a9bccf");mg.addColorStop(1,"#7f97ad")}
+  path();g.fillStyle=mg;g.fill();
+  // shadowed east face + snow ridges
+  g.save();path();g.clip();
+  g.fillStyle=dark?"rgba(0,0,10,.28)":"rgba(70,95,125,.22)";g.beginPath();g.moveTo(mx+half*.04,top);g.lineTo(mx+half,baseY);g.lineTo(mx+half*.1,baseY);g.lineTo(mx+half*.02,H*.25);g.closePath();g.fill();
+  // soft snowfields running down from the summit
+  for(let k=0;k<14;k++){const sx=mx+(r()-.5)*half*.3,sy=top+18+r()*30,ex=sx+(r()-.5)*half*.8,ey=sy+H*(.1+r()*.16);
+    const sg=g.createLinearGradient(sx,sy,ex,ey);sg.addColorStop(0,dark?"rgba(200,210,240,.22)":"rgba(255,255,255,.5)");sg.addColorStop(1,"rgba(255,255,255,0)");
+    g.strokeStyle=sg;g.lineWidth=6+r()*8;g.lineCap="round";g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo((sx+ex)/2+(r()-.5)*30,(sy+ey)/2,ex,ey);g.stroke()}
+  g.restore();
+  // Olympics / foothills, layered blue
+  const ridge=(y0,amp,col,seed)=>{const rr=rnd(seed);g.fillStyle=col;g.beginPath();g.moveTo(0,H);g.lineTo(0,y0);for(let x=0;x<=W;x+=24)g.lineTo(x,y0-Math.abs(Math.sin(x*.004+seed))*amp-rr()*amp*.3);g.lineTo(W,H);g.closePath();g.fill()};
+  ridge(H*.6,H*.07,dark?"#1d2440":"#9db2c6",3);
+  ridge(H*.66,H*.05,dark?"#171d34":"#8aa1b6",7);
+  // Elliott Bay
+  const bay=g.createLinearGradient(0,H*.86,0,H);bay.addColorStop(0,dark?"#141a2e":"#6f93b0");bay.addColorStop(1,dark?"#0c1120":"#587d9b");g.fillStyle=bay;g.fillRect(0,H*.86,W,H*.14);
+  // downtown towers
+  const tower=(x,w,h,col,opt={})=>{const y=H*.88-h;
+    const lg=g.createLinearGradient(x,0,x+w,0);lg.addColorStop(0,col);lg.addColorStop(1,shade(col,dark?-.04:-.1));g.fillStyle=lg;
+    g.beginPath();if(opt.slope){g.moveTo(x,y+opt.slope);g.lineTo(x+w,y);g.lineTo(x+w,H*.88);g.lineTo(x,H*.88)}else if(opt.step){g.moveTo(x,y+opt.step);g.lineTo(x+w*.2,y+opt.step);g.lineTo(x+w*.2,y);g.lineTo(x+w*.8,y);g.lineTo(x+w*.8,y+opt.step);g.lineTo(x+w,y+opt.step);g.lineTo(x+w,H*.88);g.lineTo(x,H*.88)}else g.rect(x,y,w,h);g.fill();
+    if(opt.ant){g.fillStyle=dark?"#556":"#556270";g.fillRect(x+w/2-1.5,y-opt.ant,3,opt.ant);if(dark){g.fillStyle="#ff5a5a";g.fillRect(x+w/2-2,y-opt.ant-3,4,4)}}
+    const rows=Math.floor(h/12),cols=Math.max(2,Math.floor(w/10));
+    for(let a=1;a<rows-1;a++)for(let b=0;b<cols;b++){const lit=dark&&r()<.45;
+      g.fillStyle=lit?`rgba(255,${200+Math.floor(r()*40)},140,${.65+r()*.35})`:dark?"rgba(12,15,24,.75)":`rgba(255,255,255,${.12+r()*.1})`;
+      g.fillRect(x+3+b*(w-6)/cols,H*.88-h+a*12+(opt.slope&&a<3?opt.slope:0),(w-6)/cols-3,6)}};
+  const far=dark?["#2b3149","#31384f","#272d43"]:["#b9c9d6","#c7d3dc","#aebfcd"];
+  for(let i=0;i<26;i++){const w=34+r()*46,h=H*(.12+r()*.18);tower(W*.38+r()*W*.5,w,h,far[i%3])}
+  const near=dark?["#343b55","#3c4360","#2f3550","#20263b"]:["#93a9bb","#a3b6c5","#d8cdb8","#4f5d6c"];
+  [[W*.4,70,H*.38,0,{ant:26}],[W*.46,64,H*.31,2,{step:30}],[W*.52,92,H*.5,3,{slope:40,ant:18}],[W*.59,60,H*.36,1,{}],[W*.64,78,H*.43,0,{step:24}],
+   [W*.7,58,H*.3,2,{ant:14}],[W*.75,84,H*.34,1,{slope:26}],[W*.81,62,H*.27,0,{}],[W*.86,70,H*.22,2,{}]].forEach(([x,w,h,ci,o])=>tower(x,w,h,near[ci],o));
+  // Space Needle
+  const nx=W*.27,ny=H*.88,nh=H*.6;const ink=dark?"#c9d2e6":"#5d6b78",ink2=dark?"#e8edf8":"#7a8794";
+  g.strokeStyle=ink;g.lineWidth=5;
+  [[-34,-6],[34,6],[-14,-3],[14,3]].forEach(([b,t])=>{g.beginPath();g.moveTo(nx+b,ny);g.quadraticCurveTo(nx+t*1.4,ny-nh*.45,nx+t,ny-nh*.78);g.stroke()});
+  g.lineWidth=2;for(let k=1;k<4;k++){const y=ny-nh*.18*k;g.beginPath();g.moveTo(nx-30+k*6,y);g.lineTo(nx+30-k*6,y);g.stroke()}
+  g.fillStyle=ink2;g.beginPath();g.ellipse(nx,ny-nh*.8,74,13,0,0,7);g.fill();
+  g.fillStyle=ink;g.beginPath();g.moveTo(nx-74,ny-nh*.8);g.lineTo(nx-52,ny-nh*.8+20);g.lineTo(nx+52,ny-nh*.8+20);g.lineTo(nx+74,ny-nh*.8);g.closePath();g.fill();
+  g.fillStyle=ink2;g.beginPath();g.ellipse(nx,ny-nh*.85,48,10,0,0,7);g.fill();
+  g.fillStyle=ink;g.fillRect(nx-2,ny-nh*1.02,4,nh*.17);
+  if(dark){g.fillStyle="rgba(255,236,190,.95)";for(let k=-60;k<=60;k+=10)g.fillRect(nx+k-3,ny-nh*.8-2,6,4);
+    const hg=g.createRadialGradient(nx,ny-nh*.8,10,nx,ny-nh*.8,120);hg.addColorStop(0,"rgba(255,236,190,.35)");hg.addColorStop(1,"rgba(255,236,190,0)");g.fillStyle=hg;g.fillRect(nx-120,ny-nh*.8-120,240,240)}
+  // water reflections
+  for(let i=0;i<70;i++){const x=r()*W,y=H*(.875+r()*.12),w=12+r()*50;g.fillStyle=dark?`rgba(255,214,150,${r()*.35})`:`rgba(255,255,255,${.15+r()*.25})`;g.fillRect(x,y,w,1.6)}
+  // haze over the far layers in daylight
+  if(!dark){const hz=g.createLinearGradient(0,H*.45,0,H*.9);hz.addColorStop(0,"rgba(255,255,255,0)");hz.addColorStop(1,"rgba(255,255,255,.18)");g.fillStyle=hz;g.fillRect(0,H*.45,W,H*.45)}
   O.cityTex.needsUpdate=true;
 }
 function packet(){
