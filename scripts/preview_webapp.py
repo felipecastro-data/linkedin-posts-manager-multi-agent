@@ -50,11 +50,12 @@ def payload(run, today):
         scores.append(o)
 
     runs_hdr = ["Run ID", "Run At", "Summary", "Strategist Feedback", "Pillar / Lens Suggestions", "Coverage Before",
-                "Coverage After", "Added", "Edited", "Dropped", "Moved", "Change Log"]
+                "Coverage After", "Added", "Edited", "Dropped", "Moved", "Change Log", "Agent Stats"]
     runs = []
     for r in by_tab.get("Agent Runs", []):
         o = dict(zip(map(slug, runs_hdr), [str(v) for v in r]))
         o["change_log"] = json.loads(o["change_log"])
+        o["agent_stats"] = json.loads(o["agent_stats"]) if o.get("agent_stats") else None
         runs.append(o)
 
     return {"pillars": col_list("Pillars"), "lenses": col_list("Lenses"), "schedule": schedule,

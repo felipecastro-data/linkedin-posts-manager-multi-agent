@@ -7,10 +7,11 @@ const ICONS={
  queue:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
  posts:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14l-4-3H6a2 2 0 0 1-2-2z"/><path d="M8 8h8M8 12h5"/></svg>',
  coverage:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="10" y="3" width="5" height="5" rx="1.2"/><rect x="17" y="3" width="4" height="5" rx="1.2"/><rect x="3" y="10" width="5" height="5" rx="1.2"/><rect x="10" y="10" width="5" height="5" rx="1.2"/><rect x="3" y="17" width="5" height="4" rx="1.2"/></svg>',
+ office:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><rect x="5" y="9" width="14" height="3" rx="1"/><path d="M7 12v8M17 12v8"/><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/></svg>',
  runs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/></svg>'
 };
 const PLUS='<span class="plus"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg></span>';
-const TABS=[["overview","Overview"],["queue","Queue"],["posts","Posts"],["coverage","Coverage"],["runs","Runs"]];
+const TABS=[["overview","Overview"],["office","Office"],["queue","Queue"],["posts","Posts"],["coverage","Coverage"],["runs","Runs"]];
 const ST={posted:"Created & Posted",scheduled:"Created & Scheduled",queued:"Not Created / In Queue",dropped:"Dropped"};
 const DIMS=[["senior_depth","Senior depth"],["specificity","Specificity"],["narrow_scope","Narrow scope"],["credibility","Credibility"],["voice","Voice"]];
 const HORIZON=13;
@@ -259,17 +260,105 @@ function viewRuns(){
   </div>`;
 }
 
+/* ---------- office ---------- */
+function officeModel(){
+  const r=run();const sc=scoresFor(r);const avg=avgOf(sc.map(s=>s.score).filter(v=>v!=null));const da=dimAvgs(sc);
+  const up=upcoming();const hz=horizon();const ci=changeIndex();const covered=hz.filter(d=>up.some(x=>x.iso===d)).length;
+  const plan=sched().filter(x=>x.status!==ST.dropped);const P=S.d.pillars,Ls=S.d.lenses;const isPlan=x=>x.status===ST.queued||x.status===ST.scheduled;
+  const pub=p=>plan.some(x=>x.pillar===p&&x.status===ST.posted);
+  const flags=up.filter(x=>flagged(ci[x.iso+"|"+x.topic])).map(x=>({day:fmtShort(x.iso),topic:x.topic,issue:(ci[x.iso+"|"+x.topic].editor.issues||[])[0]}));
+  const eds=up.map(x=>ci[x.iso+"|"+x.topic]).filter(e=>e&&e.editor&&e.editor.avg!=null).map(e=>+e.editor.avg);
+  const sorted=sc.filter(s=>s.score!=null).slice().sort((a,b)=>b.score-a.score);
+  return {runDate:r?fmtDate(iso(r.run_at)):"",runId:r?r.run_id:"",summary:r?r.summary:"",feedback:r?r.strategist_feedback:"",suggestions:r?r.pillar_lens_suggestions:"",
+    ops:{added:num(r&&r.added)||0,edited:num(r&&r.edited)||0,dropped:num(r&&r.dropped)||0,moved:num(r&&r.moved)||0},stats:r&&r.agent_stats||null,
+    posts:{n:sc.length,avg,avgTxt:f1(avg),dims:da,series:sc.map(s=>s.score).filter(v=>v!=null),best:sorted[0]||null,worst:sorted[sorted.length-1]||null,
+      reactions:sc.reduce((a,s)=>a+(s.reactions||0),0),impressions:sc.reduce((a,s)=>a+(s.impressions||0),0)},
+    queue:{covered,horizon:HORIZON,end:fmtShort(hz[hz.length-1]),backlogEnd:up.length?fmtShort(up[up.length-1].iso):"",count:up.length,flags,editorAvg:avgOf(eds),
+      next:up.slice(0,4).map(x=>({day:fmtDay(x.iso),pillar:x.pillar,lens:x.lens,topic:x.topic,status:shortStatus(x.status)})),
+      days:hz.map(d=>({d:fmtShort(d),x:up.find(u=>u.iso===d)}))},
+    coverage:{pillars:P.length,lenses:Ls.length,published:P.filter(pub).length,inPlanP:P.filter(p=>plan.some(x=>x.pillar===p)).length,inPlanL:Ls.filter(l=>plan.some(x=>x.lens===l)).length,
+      never:P.filter(p=>!pub(p)).map(p=>({p,planned:up.find(x=>x.pillar===p)}))}};
+}
+function viewOffice(){
+  const r=run();
+  return `<section class="office">
+    <div class="ostage glass" id="officeHost">
+      <div class="o-top"><div><span class="eyebrow">Office · ${esc(r?fmtDate(iso(r.run_at)):"no runs yet")}</span><h2><span class="tone">Six agents,</span> one table</h2></div>
+        <div class="o-btns"><button class="o-btn" id="oReset">Reset view</button><button class="o-btn" id="oPause" aria-pressed="false">Pause</button></div></div>
+      <div class="o-loading" id="oLoading"><span class="eyebrow">Loading</span><p>Building the office…</p></div>
+      <div class="o-status" id="oStatus" hidden></div>
+      <div class="o-tag" id="oTag" hidden></div>
+      <div class="o-ticker"><span class="o-pulse"></span><div class="o-tk"><b id="oWho">–</b><span id="oWhat"></span></div><div class="o-dots" id="oDots"></div></div>
+      <div class="o-hint">Drag to turn · scroll to zoom · click anyone or anything</div>
+      <aside class="ocard glass" id="oCard" hidden></aside>
+    </div>
+  </section>`;
+}
+const fmtTok=n=>n==null?"–":n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"k":String(n);
+function usageBlock(st){
+  if(!st)return `<p class="muted" style="font-size:.84rem">Usage was not recorded for this run.</p>`;
+  if(st.kind==="llm"){const c=st.calls||[];const tok=c.reduce((a,x)=>a+(x.tokens||0),0),tl=c.reduce((a,x)=>a+(x.tool_uses||0),0),sec=c.reduce((a,x)=>a+(x.duration_s||0),0);
+    return `<div class="oc-stats"><div class="stat"><b>${fmtTok(tok)}</b><span>Tokens</span></div><div class="stat"><b>${c.length}</b><span>Calls</span></div><div class="stat"><b>${tl}</b><span>Tool uses</span></div><div class="stat"><b>${Math.round(sec/60*10)/10}<small>m</small></b><span>Time</span></div></div>
+      <div class="rows">${c.map(x=>`<div class="row"><span class="tx">${esc(x.label)}<small>${x.tool_uses} tool uses · ${x.duration_s}s</small></span><span class="v">${fmtTok(x.tokens)}</span></div>`).join("")}</div>`}
+  if(st.kind==="script"){const m=st.metrics||{};return `<div class="oc-stats">${Object.keys(m).map(k=>`<div class="stat"><b>${esc(m[k])}</b><span>${esc(k.replace(/_/g," "))}</span></div>`).join("")}</div><p class="muted" style="font-size:.8rem;margin-top:8px">No model tokens: this step runs as scripts and browser reads inside the coordinator.</p>`}
+  return `<p class="muted" style="font-size:.84rem">The coordinator is the main Claude Code session. Its own tokens aren't broken out per run yet.</p>`;
+}
+function dimRows(dims){return `<div class="cov">${dims.map(x=>`<div class="covrow"><span>${esc(x.l)}</span><span class="v">${f1(x.v)}</span><div class="meter"><i style="width:${x.v!=null?x.v/5*100:0}%;background:var(--accent)"></i></div></div>`).join("")}</div>`}
+function ocHead(eyebrow,title,sub,color){return `<div class="oc-h"><span class="oc-av" style="background:${color||"var(--accent)"}"></span><div style="flex:1;min-width:0"><span class="eyebrow">${esc(eyebrow)}</span><h3>${esc(title)}</h3>${sub?`<p class="muted">${esc(sub)}</p>`:""}</div><button class="oc-x" data-oclose aria-label="Close card">×</button></div>`}
+const ocSec=(t,b)=>`<section class="oc-sec"><span class="eyebrow">${t}</span>${b}</section>`;
+function officeCard(id){
+  const m=officeModel();const A=(window.Office&&Office.agents||[]).find(a=>a.id===id);const st=m.stats||{};
+  if(A){
+    let score="";
+    if(id==="coordinator"){const tot=["reviewer","strategist","editor"].reduce((a,k)=>a+((st[k]&&st[k].calls)||[]).reduce((b,x)=>b+(x.tokens||0),0),0);
+      score=`<div class="oc-stats"><div class="stat"><b>+${m.ops.added}</b><span>Added</span></div><div class="stat"><b>${m.ops.edited}</b><span>Edited</span></div><div class="stat"><b>${m.ops.moved}</b><span>Moved</span></div><div class="stat"><b>${m.ops.dropped}</b><span>Dropped</span></div></div><div class="rows"><div class="row"><span class="tx">Subagent tokens this run</span><span class="v">${fmtTok(tot)}</span></div><div class="row"><span class="tx">Saturdays covered</span><span class="v">${m.queue.covered}/${m.queue.horizon}</span></div></div>`}
+    if(id==="collector")score=`<div class="rows"><div class="row"><span class="tx">Posts matched to rows</span><span class="v">${st.collector?st.collector.metrics.posts_matched+"/"+st.collector.metrics.posts_read:"–"}</span></div><div class="row"><span class="tx">Matching method</span><span class="v">publish date in URL</span></div></div>`;
+    if(id==="reviewer")score=`<div class="big" style="margin-bottom:8px"><span class="n" style="font-size:2rem">${m.posts.avgTxt}</span><span class="u">average of ${m.posts.n} posts</span></div>${dimRows(m.posts.dims)}${m.posts.best?`<div class="rows" style="margin-top:8px"><div class="row"><span class="tx">Best · ${esc(m.posts.best.topic)}<small>${esc(fmtShort(m.posts.best.date))}</small></span><span class="v">${f1(m.posts.best.score)}</span></div><div class="row"><span class="tx">Lowest · ${esc(m.posts.worst.topic)}<small>${esc(fmtShort(m.posts.worst.date))}</small></span><span class="v">${f1(m.posts.worst.score)}</span></div></div>`:""}`;
+    if(id==="strategist")score=`<div class="oc-stats"><div class="stat"><b>+${m.ops.added}</b><span>Ideas added</span></div><div class="stat"><b>${m.ops.edited}</b><span>Edited</span></div><div class="stat"><b>${m.coverage.inPlanP}/${m.coverage.pillars}</b><span>Pillars planned</span></div><div class="stat"><b>${m.coverage.inPlanL}/${m.coverage.lenses}</b><span>Lenses planned</span></div></div>${m.feedback?`<p style="font-size:.88rem;margin-top:10px">${esc(m.feedback)}</p>`:""}${m.suggestions?`<p class="muted" style="font-size:.82rem;margin-top:8px">Suggests ${esc(m.suggestions)}</p>`:""}`;
+    if(id==="editor")score=`<div class="oc-stats"><div class="stat"><b>${f1(m.queue.editorAvg)}</b><span>Avg potential</span></div><div class="stat"><b>${m.queue.flags.length}</b><span>Open flags</span></div><div class="stat"><b>${(st.editor&&st.editor.calls||[]).length||"–"}</b><span>Review passes</span></div></div>${m.queue.flags.length?`<div class="rows">${m.queue.flags.map(f=>`<div class="row"><span class="tx">${esc(f.day)} · ${esc(f.topic)}<small>${esc(f.issue)}</small></span></div>`).join("")}</div>`:""}`;
+    if(id==="writer")score=`<div class="rows"><div class="row"><span class="tx">Rule errors in the final proposal</span><span class="v">${st.writer?st.writer.metrics.rule_errors:"–"}</span></div><div class="row"><span class="tx">Rows touched</span><span class="v">queued only</span></div><div class="row"><span class="tx">Dropped ideas</span><span class="v">kept, never deleted</span></div></div>`;
+    return ocHead(A.kind,A.name,A.role,A.accent)+`<p class="oc-desc">${esc(A.desc)}</p>`+ocSec("In every run",`<ul class="since">${A.does.map(d=>`<li><span>${esc(d)}</span></li>`).join("")}</ul>`)+ocSec("Usage · last run",usageBlock(st[id]))+ocSec("Scorecard",score)+(m.stats&&m.stats.note&&A.kind==="Claude subagent"?`<p class="muted" style="font-size:.74rem;margin-top:10px">${esc(m.stats.note)}</p>`:"");
+  }
+  const C={
+    tv:()=>ocHead("Wall screen","Run dashboard",m.runDate)+`<p class="oc-desc">${esc(m.summary)}</p>`+ocSec("This run",`<div class="oc-stats"><div class="stat"><b>${m.posts.avgTxt}</b><span>Content score</span></div><div class="stat"><b>${m.queue.covered}/${m.queue.horizon}</b><span>Saturdays</span></div><div class="stat"><b>+${m.ops.added}</b><span>Added</span></div><div class="stat"><b>${m.queue.flags.length}</b><span>Flags</span></div></div>`),
+    window:()=>ocHead("Window","Planning horizon",`Next ${m.queue.horizon} Saturdays`)+`<div class="oc-days">${m.queue.days.map(d=>`<div class="oc-day ${d.x?"on":""}" title="${esc(d.x?d.x.topic:"Open")}"><b>${esc(d.d)}</b><span>${esc(d.x?d.x.pillar:"open")}</span></div>`).join("")}</div><p class="muted" style="font-size:.84rem;margin-top:10px">${m.queue.covered} of ${m.queue.horizon} covered${m.queue.backlogEnd?` · backlog runs to ${esc(m.queue.backlogEnd)}`:""}.</p>`,
+    notebook:()=>ocHead("Notebook","Writing rules","What every post is scored against")+`<ul class="since"><li><span>Lead with the problem or the decision, never a brag.</span></li><li><span>One decision per post, at most three paragraphs.</span></li><li><span>Real numbers from a test you ran. No employer data.</span></li><li><span>No hooks, no em dashes, no "The trade-off is…" closers.</span></li></ul>`+ocSec("Voice score",dimRows(m.posts.dims.filter(x=>x.k==="voice"))),
+    phone:()=>ocHead("Phone","Your LinkedIn posts",`${m.posts.n} published`)+`<div class="oc-stats"><div class="stat"><b>${m.posts.n}</b><span>Posts</span></div><div class="stat"><b>${compact(m.posts.reactions)}</b><span>Reactions</span></div><div class="stat"><b>${compact(m.posts.impressions)}</b><span>Impressions</span></div></div><p class="muted" style="font-size:.82rem;margin-top:10px">Shown for context only. Engagement never changes a score or a plan.</p>`,
+    plants:()=>ocHead("Plants","Coverage",`${m.coverage.published} of ${m.coverage.pillars} pillars published`)+`<div class="oc-stats"><div class="stat"><b>${m.coverage.published}/${m.coverage.pillars}</b><span>Published</span></div><div class="stat"><b>${m.coverage.inPlanP}/${m.coverage.pillars}</b><span>Pillars planned</span></div><div class="stat"><b>${m.coverage.inPlanL}/${m.coverage.lenses}</b><span>Lenses planned</span></div></div>`+ocSec("Not published yet",`<div class="rows">${m.coverage.never.map(n=>`<div class="row"><span class="tx">${esc(n.p)}<small>${n.planned?"Planned "+esc(fmtShort(n.planned.iso)):"Not in the queue"}</small></span></div>`).join("")}</div>`),
+    queue:()=>ocHead("Table","The queue",`${m.queue.count} ideas ahead`)+`<div class="rows">${m.queue.next.map(x=>`<div class="row"><span class="tx">${esc(x.topic)}<small>${esc(x.day)} · ${esc(x.pillar)} · ${esc(x.lens)}</small></span><span class="v">${esc(x.status)}</span></div>`).join("")}</div><button class="link" data-tab="queue" style="margin-top:12px">Open the full queue →</button>`
+  }[id];
+  return C?C():"";
+}
+function officeHooks(){
+  const dots=$("#oDots");if(dots&&window.Office)dots.innerHTML=Office.steps.map((x,i)=>`<i data-i="${i}"></i>`).join("");
+  return {dark:isDark(),
+    onReady(){const l=$("#oLoading");if(l)l.hidden=true},
+    onError(msg){const l=$("#oLoading");if(l)l.innerHTML=`<span class="eyebrow">Couldn't load 3D</span><p>${esc(msg)}</p>`},
+    onStep(i,txt,who){const w=$("#oWho"),t=$("#oWhat"),st=$("#oStatus");if(!w)return;const A=Office.agents.find(a=>a.id===who);w.textContent=A?A.name:who;t.textContent=txt;
+      document.querySelectorAll("#oDots i").forEach((d,k)=>d.classList.toggle("on",k===i));if(st){st.textContent=txt;st.hidden=false}},
+    onFrame(p,vis){const st=$("#oStatus");if(!st)return;st.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;st.style.opacity=vis?1:0},
+    onHover(name,e){const tg=$("#oTag");if(!tg)return;if(!name){tg.hidden=true;return}const r=$("#officeHost").getBoundingClientRect();tg.textContent=name;tg.style.transform=`translate(${e.clientX-r.left+14}px,${e.clientY-r.top+14}px)`;tg.hidden=false},
+    onCard(id){const c=$("#oCard");if(!c)return;if(!id){c.hidden=true;return}c.innerHTML=officeCard(id);c.hidden=false;c.scrollTop=0}};
+}
+function mountOffice(){
+  const host=$("#officeHost");if(!host||!window.Office)return;
+  Office.mount(host,officeModel(),officeHooks());
+}
+
 /* ---------- render ---------- */
 function render(soft){
   renderNav();
   const main=$("#main");
   if(S.err){main.innerHTML=`<div class="empty glass"><span class="eyebrow">Error</span><h2>Couldn't read the sheet</h2><p class="muted">${esc(S.err)}</p><p class="muted">Reload the page. If it keeps failing, check the SPREADSHEET_ID script property.</p></div>`;return}
   if(!S.loaded)return;
-  const v={overview:viewOverview,queue:viewQueue,posts:viewPosts,coverage:viewCoverage,runs:viewRuns}[S.tab]||viewOverview;
+  if(soft&&S.tab==="office"&&$("#officeHost")&&window.Office){Office.setModel(officeModel());return}
+  if(S.tab!=="office"&&window.Office)Office.unmount();
+  const v={overview:viewOverview,office:viewOffice,queue:viewQueue,posts:viewPosts,coverage:viewCoverage,runs:viewRuns}[S.tab]||viewOverview;
   const y=window.scrollY;const open=[...document.querySelectorAll("details.item[open]")].map(d=>d.id);
   main.innerHTML=v();
   if(soft){document.querySelectorAll(".enter").forEach(e=>e.classList.remove("enter"));document.querySelectorAll("details.item").forEach(d=>{if(d.id&&open.includes(d.id))d.open=true});window.scrollTo(0,y)}
   fitHero();motion();
+  if(S.tab==="office")mountOffice();
 }
 
 /* ---------- scroll motion (from LinkedIn Review) ---------- */
@@ -321,7 +410,10 @@ function isDark(){const a=document.documentElement.getAttribute("data-theme");re
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
-  if(e.target.closest("#themeBtn")){const d=!isDark();document.documentElement.setAttribute("data-theme",d?"dark":"light");ls.set("lp.theme",d?"dark":"light");(window.__retheme||[]).forEach(f=>f());renderNav();return}
+  if(e.target.closest("#themeBtn")){const d=!isDark();document.documentElement.setAttribute("data-theme",d?"dark":"light");ls.set("lp.theme",d?"dark":"light");(window.__retheme||[]).forEach(f=>f());window.Office&&Office.setTheme(d);renderNav();return}
+  if(e.target.closest("#oReset")){Office.home();return}
+  if(e.target.closest("#oPause")){const b=e.target.closest("#oPause");const p=!Office.isPaused();Office.pause(p);b.setAttribute("aria-pressed",p);b.textContent=p?"Play":"Pause";return}
+  if(e.target.closest("[data-oclose]")){Office.home();return}
   const sb=e.target.closest("[data-sort]");if(sb){S.sort=sb.dataset.sort;render(true);return}
   const rb=e.target.closest("[data-run]");if(rb){S.runId=rb.dataset.run;ls.set("lp.run",S.runId);render();window.scrollTo({top:0});return}
   const nb=e.target.closest("[data-tab]");

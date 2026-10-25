@@ -95,6 +95,27 @@ python3 scripts/coverage.py runs/<RUN_ID>/sheet.json runs/<RUN_ID>/coverage.json
 `match.py` decodes the publish date from each activity ID. Unmatched rows
 or posts are reported; carry them on, do not stop.
 
+## Usage log (every run)
+
+Keep `runs/<RUN_ID>/agent_stats.json` up to date as the run goes; the web
+app's Office tab reads it from the Agent Runs tab. Shape:
+
+```json
+{"note": "Tokens, tool calls and duration as Claude Code reported them for each subagent call.",
+ "coordinator": {"kind": "session", "recorded": false},
+ "collector": {"kind": "script", "metrics": {"posts_read": 0, "schedule_rows": 0, "pillars": 0, "lenses": 0, "posts_matched": 0}},
+ "reviewer":   {"kind": "llm", "calls": [{"label": "Score N posts", "tokens": 0, "tool_uses": 0, "duration_s": 0}]},
+ "strategist": {"kind": "llm", "calls": []},
+ "editor":     {"kind": "llm", "calls": []},
+ "writer":     {"kind": "script", "metrics": {"schedule_rows": 0, "score_rows": 0, "run_rows": 0, "rule_errors": 0}}}
+```
+- After each subagent finishes, append one call with the `subagent_tokens`,
+  `tool_uses` and `duration_ms` (as seconds) from its completion notice.
+  Never estimate a number you were not given; leave the call out instead.
+- Collector metrics come from the Step 1-2 script output; writer metrics
+  from `build_writes.py` and `validate_proposal.py` (in a dry run, writer
+  rows are 0).
+
 ## Step 3 — Content Reviewer (subagent)
 
 Launch one general-purpose subagent: "Read `.claude/agents/content-reviewer.md`

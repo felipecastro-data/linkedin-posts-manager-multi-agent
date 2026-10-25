@@ -145,13 +145,15 @@ def main():
     suggestions = "; ".join(f"{x['type']}: {x['name']} ({x['why']})" for x in proposal.get("suggestions", []))
     change_log = build_change_log(diff, run)
     n = a.runs_next_row
-    value_writes.append({"range": f"'{sh['runs_tab']}'!A{n}:L{n}", "values": [[
+    stats_path = run / "agent_stats.json"
+    agent_stats = json.dumps(read_json(stats_path), ensure_ascii=False) if stats_path.exists() else ""
+    value_writes.append({"range": f"'{sh['runs_tab']}'!A{n}:M{n}", "values": [[
         a.run_id, run_date, proposal.get("summary", ""), proposal.get("feedback", ""), suggestions,
         validation["coverage_before"], validation["coverage_after"],
         ops.get("ADD", 0), ops.get("EDIT", 0) + ops.get("EDIT+MOVE", 0), ops.get("DROP", 0),
-        ops.get("MOVE", 0) + ops.get("EDIT+MOVE", 0), change_log,
+        ops.get("MOVE", 0) + ops.get("EDIT+MOVE", 0), change_log, agent_stats,
     ]]})
-    table_updates.append(table_range(sh["runs_sheet_id"], 0, max(n, 2), 0, 12, sh["runs_table_id"]))
+    table_updates.append(table_range(sh["runs_sheet_id"], 0, max(n, 2), 0, 13, sh["runs_table_id"]))
 
     write_json(run / "writes.json", {"table_updates": table_updates, "value_writes": value_writes})
     print(f"schedule_rows={len(sched)} score_rows={len(score_rows)} table_updates={len(table_updates)} "

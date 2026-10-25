@@ -190,3 +190,13 @@ webapp/                               Apps Script project (Phase 3, clasp)
      so the URL stays the same.
    - Editor verdicts (avg, potential, issues) are stored per idea in the Agent Runs
      Change Log, which now lists every queue entry, KEEP included.
+4. **Office** (done, v2 deployment): a 3D tab in the same web app (`webapp/Office.html`,
+   three.js r147 from jsDelivr, loaded only when the tab opens). Isometric cut-away
+   room after the reference render; six androids built in code from the three
+   reference figures; the run plays on a loop (hand-off packets between laptops,
+   status chip over the active agent, TV dashboard). Every agent and the TV, window,
+   notebook, phone, plants and table open a frosted card. Seating: Coordinator and
+   Content Strategist on the window side; Collector, Content Reviewer, Editor and
+   Sheet Writer in front. Night mode lights the city.
+   - Per-agent usage lives in the Agent Runs `Agent Stats` column (M), written from
+     `runs/<id>/agent_stats.json` (see the Usage log section of the skill).

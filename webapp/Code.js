@@ -76,6 +76,8 @@ function getData() {
   const runs = readTab_(ss, 'Agent Runs').map(r => {
     try { r.change_log = r.change_log ? JSON.parse(r.change_log) : []; }
     catch (e) { r.change_log = []; }
+    try { r.agent_stats = r.agent_stats ? JSON.parse(r.agent_stats) : null; }
+    catch (e) { r.agent_stats = null; }
     return r;
   });
   return JSON.stringify({
