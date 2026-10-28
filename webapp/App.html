@@ -303,7 +303,77 @@ function viewOffice(){
       <div class="o-hint">Drag to turn · scroll to zoom · click anyone or anything</div>
       <aside class="ocard glass" id="oCard" hidden></aside>
     </div>
+    ${officeMetrics()}
   </section>`;
+}
+
+/* ---------- office: run metrics under the 3D frame (after LinkedIn Review's Office tab) ---------- */
+const SUBS=["reviewer","strategist","editor"],REPLAY_S=40,REPLAY_HOLD=2.5;
+const agentOf=k=>(window.Office&&Office.agents||[]).find(a=>a.id===k)||{name:k,accent:"var(--accent)"};
+const SHORT={reviewer:"Reviewer",strategist:"Strategist",editor:"Editor"};
+const fmtDur=s=>{s=Math.round(s||0);return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`};
+const pctDelta=(a,b,what)=>{if(!b)return "";const p=(a-b)/b*100;return `${p>0?"+":p<0?"−":"±"}${Math.abs(p).toFixed(0)}% ${what}`};
+/* Subagent calls in the order the run makes them (Reviewer, then Strategist and Editor taking turns).
+   They run one after another, so each starts where the last one ended. */
+function callPlan(st){
+  const c=k=>(st&&st[k]&&st[k].kind==="llm"&&st[k].calls)||[],q=[];
+  c("reviewer").forEach((x,i)=>q.push({id:"reviewer",i,x}));
+  const s=c("strategist"),e=c("editor");for(let i=0;i<Math.max(s.length,e.length);i++){if(s[i])q.push({id:"strategist",i,x:s[i]});if(e[i])q.push({id:"editor",i,x:e[i]})}
+  let t=0;q.forEach(o=>{o.start=t;o.dur=o.x.duration_s||0;t+=o.dur});return {calls:q,wall:t};
+}
+function runTotals(r){
+  const st=r&&r.agent_stats;const p=callPlan(st);if(!p.calls.length)return null;const sum=(l,k)=>l.reduce((a,o)=>a+(o.x[k]||0),0);
+  const by={};SUBS.forEach(k=>by[k]={tok:llmTok(st[k])||0,sec:llmSec(st[k])||0});
+  return {plan:p,wall:p.wall,tok:sum(p.calls,"tokens"),tools:sum(p.calls,"tool_uses"),calls:p.calls.length,rev:sum(p.calls.filter(o=>o.i>0),"tokens"),by,ideas:ideasOf(r)};
+}
+function officeMetrics(){
+  const T=runTotals(run());
+  if(!T)return `<section class="glass card"><div class="sec-h"><h2>No usage recorded for this run</h2></div><p class="muted">The run writes <code>agent_stats.json</code> as each subagent finishes; runs before that have no usage to show.</p></section>`;
+  const tile=(k,v,sub)=>`<div class="glass om-tile"><span class="eyebrow">${k}</span><b>${v}</b><small>${sub}</small></div>`;
+  return `<div class="om-tiles">${tile("Tokens",fmtTok(T.tok),`${T.calls} subagent calls`)}${tile("Subagent time",fmtDur(T.wall),`${T.tools} tool uses`)}${tile("Per idea",T.ideas?fmtTok(Math.round(T.tok/T.ideas)):"–",`${T.ideas} ideas in the queue`)}${tile("Revision round",T.tok?Math.round(T.rev/T.tok*100)+"%":"–",`${fmtTok(T.rev)} tokens on second passes`)}</div>
+    ${omReplay(T)}<div class="om-two">${omTokens(T)}${omCompare()}</div>
+    <p class="om-foot">Tokens, tool uses and time are as Claude Code reported each subagent call. The calls run one after another, so the replay lays them end to end; the coordinator's own work and the Collector and Sheet Writer scripts aren't timed. Cost and cache savings need tokens split by type, which the run doesn't log yet.</p>`;
+}
+function omReplay(T){
+  const chip=(label,id,s,e)=>`<li data-s="${s}" data-e="${e}" style="--c:${agentOf(id).accent}">${esc(label)}</li>`;
+  const chips=[chip("Collect","collector",-1,0)].concat(T.plan.calls.map(o=>chip(o.x.label||agentOf(o.id).name,o.id,o.start,o.start+o.dur)),[chip("Write","writer",T.wall,T.wall+1)]).join('<li class="sep">›</li>');
+  const seg=o=>`<i style="--c:${agentOf(o.id).accent};left:${o.start/T.wall*100}%;width:${Math.max(.8,o.dur/T.wall*100)}%" title="${esc(o.x.label)} · ${fmtDur(o.dur)} · ${fmtTok(o.x.tokens)} tokens"></i>`;
+  const rows=[`<div class="om-tl-row"><span>Coordinator</span><i style="--c:${agentOf("coordinator").accent};left:0;width:100%" title="Coordinator · whole run"></i></div>`]
+    .concat(SUBS.map(k=>`<div class="om-tl-row"><span>${SHORT[k]}</span>${T.plan.calls.filter(o=>o.id===k).map(seg).join("")}</div>`)).join("");
+  return `<section class="glass card"><div class="sec-h"><h2>Run replay</h2><span class="muted mono" id="omClock"></span></div>
+    <ol class="om-pipe" id="omPipe">${chips}</ol><div class="om-tl">${rows}<div class="om-head" id="omHead"></div></div></section>`;
+}
+function omTokens(T){
+  const max=Math.max(...SUBS.map(k=>T.by[k].tok),1);
+  return `<section class="glass card"><div class="sec-h"><h2>Where the tokens go</h2><span class="muted">By agent and pass</span></div>
+    <div class="om-sc">${SUBS.map(k=>{const A=agentOf(k);return `<div class="om-sc-row"><span>${SHORT[k]}</span><div class="om-bar">${T.plan.calls.filter(o=>o.id===k).map(o=>`<i style="width:${(o.x.tokens||0)/max*100}%;background:${A.accent};opacity:${o.i?.5:1}" title="${esc(o.x.label)} · ${fmtTok(o.x.tokens)} tokens"></i>`).join("")}</div><span class="v">${fmtTok(T.by[k].tok)}</span></div>`}).join("")}</div>
+    <ul class="om-legend"><li><i class="om-sw" style="background:var(--ink)"></i>First pass</li><li><i class="om-sw" style="background:var(--ink);opacity:.5"></i>Revision round</li></ul></section>`;
+}
+function omCompare(){
+  const rs=runs().map(r=>({r,T:runTotals(r)})).filter(x=>x.T),cur=run()&&run().run_id;
+  const max=Math.max(...rs.map(x=>x.T.tok),1),when=r=>fmtDate(iso(r.run_at));
+  const rows=rs.map(({r,T},i)=>{const prev=rs[i+1]&&rs[i+1].T;
+    return `<button class="om-cmp-row ${r.run_id===cur?"cur":""}" type="button" data-orun="${esc(r.run_id)}"><span class="om-cmp-when">${esc(when(r))}</span>
+      <span class="om-cmp-bar">${SUBS.map(k=>`<i style="width:${T.by[k].tok/max*100}%;background:${agentOf(k).accent}" title="${esc(agentOf(k).name)} · ${fmtTok(T.by[k].tok)} tokens · ${fmtDur(T.by[k].sec)}"></i>`).join("")}</span>
+      <span class="om-cmp-nums"><b>${fmtTok(T.tok)}</b> tok · ${fmtDur(T.wall)}<br>${prev?`${pctDelta(T.tok,prev.tok,"tokens")} · ${pctDelta(T.wall,prev.wall,"time")}`:"first run with stats"}</span></button>`}).join("");
+  const table=`<thead><tr><th>Agent</th>${rs.map(x=>`<th>${esc(when(x.r))}</th>`).join("")}</tr></thead><tbody>`+
+    SUBS.map(k=>`<tr><th>${esc(agentOf(k).name)}</th>${rs.map(x=>`<td>${fmtTok(x.T.by[k].tok)}<br><small>${fmtDur(x.T.by[k].sec)}</small></td>`).join("")}</tr>`).join("")+
+    `<tr class="tot"><th>Total</th>${rs.map(x=>`<td>${fmtTok(x.T.tok)}<br><small>${fmtDur(x.T.wall)}</small></td>`).join("")}</tr></tbody>`;
+  return `<section class="glass card"><div class="sec-h"><h2>Compare runs</h2><span class="muted">Tokens by agent, one scale. Pick a run to replay it.</span></div>
+    <ul class="om-legend" style="margin:0 0 10px">${SUBS.map(k=>`<li><i class="om-sw" style="background:${agentOf(k).accent}"></i>${esc(agentOf(k).name)}</li>`).join("")}</ul>
+    <div class="om-cmp">${rows}</div><details class="om-table"><summary>Table view</summary><div><table>${table}</table></div></details></section>`;
+}
+/* Playhead loop: the run in REPLAY_S seconds, held at the end, paused with the office or a hidden tab. */
+let omRAF=0;
+function omStart(){
+  cancelAnimationFrame(omRAF);const head=$("#omHead"),T=runTotals(run());if(!head||!T||!T.wall)return;
+  const paint=t=>{head.style.left=`calc(96px + (100% - 96px) * ${t/T.wall})`;const c=$("#omClock");if(c)c.textContent=`${fmtDur(t)} / ${fmtDur(T.wall)} · replay ${Math.round(T.wall/REPLAY_S)}×`;
+    document.querySelectorAll("#omPipe li[data-s]").forEach(li=>{const s=+li.dataset.s,e=+li.dataset.e;li.classList.toggle("on",t>=s&&t<e);li.classList.toggle("done",t>=e)})};
+  if(!motionOK){paint(T.wall);return}
+  let acc=0,last=performance.now();
+  const tick=now=>{if(!head.isConnected)return;if(!document.hidden&&!(window.Office&&Office.isPaused()))acc+=(now-last)/1000;last=now;
+    paint(Math.min(1,(acc%(REPLAY_S+REPLAY_HOLD))/REPLAY_S)*T.wall);omRAF=requestAnimationFrame(tick)};
+  omRAF=requestAnimationFrame(tick);
 }
 const fmtTok=n=>n==null?"–":n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"k":String(n);
 const llmTok=st=>st&&st.kind==="llm"?(st.calls||[]).reduce((a,x)=>a+(x.tokens||0),0):null;
@@ -424,7 +494,7 @@ function render(soft){
   main.innerHTML=v();
   if(soft){document.querySelectorAll(".enter").forEach(e=>e.classList.remove("enter"));document.querySelectorAll("details.item").forEach(d=>{if(d.id&&open.includes(d.id))d.open=true});window.scrollTo(0,y)}
   fitHero();motion();
-  if(S.tab==="office")mountOffice();
+  if(S.tab==="office"){mountOffice();omStart()}
 }
 
 /* ---------- scroll motion (from LinkedIn Review) ---------- */
@@ -481,6 +551,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#oPause")){const b=e.target.closest("#oPause");const p=!Office.isPaused();Office.pause(p);b.setAttribute("aria-pressed",p);b.textContent=p?"Play":"Pause";return}
   if(e.target.closest("[data-oclose]")){Office.home();return}
   const sb=e.target.closest("[data-sort]");if(sb){S.sort=sb.dataset.sort;render(true);return}
+  const orun=e.target.closest("[data-orun]");if(orun){const y=window.scrollY;S.runId=orun.dataset.orun;ls.set("lp.run",S.runId);render();window.scrollTo(0,y);return}
   const rb=e.target.closest("[data-run]");if(rb){S.runId=rb.dataset.run;ls.set("lp.run",S.runId);render();window.scrollTo({top:0});return}
   const nb=e.target.closest("[data-tab]");
   if(nb){S.tab=nb.dataset.tab;ls.set("lp.tab",S.tab);$("#htip").hidden=true;render();window.scrollTo({top:0});return}

@@ -381,6 +381,55 @@ details[open] .plus{transform:rotate(45deg);background:var(--surface-2)}
 .o-loading[hidden],.ocard[hidden],.o-status[hidden],.o-tag[hidden]{display:none!important}
 .o-btn{white-space:nowrap}
 
+/* office run metrics under the 3D frame, after LinkedIn Review's Office tab */
+.office{display:flex;flex-direction:column;gap:18px}
+.om-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.om-tile{padding:16px 18px;min-width:0}
+.om-tile b{display:block;font-size:1.6rem;font-weight:600;letter-spacing:-.03em;margin-top:4px;font-variant-numeric:tabular-nums}
+.om-tile small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
+.om-pipe{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.8rem}
+.om-pipe li{padding:5px 11px;border-radius:999px;background:var(--surface-2);color:var(--muted);transition:background .25s,color .25s}
+.om-pipe li.sep{background:none;padding:0;color:var(--faint)}
+.om-pipe li.done{color:var(--ink)}
+.om-pipe li.on{background:var(--c,var(--accent));color:#14161a}
+.om-tl{position:relative;display:grid;gap:6px;padding-left:96px}
+.om-tl-row{position:relative;height:16px;border-radius:6px;background:var(--surface-2)}
+.om-tl-row span{position:absolute;left:-96px;top:0;width:90px;font-size:.74rem;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.om-tl-row i{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--c)}
+.om-head{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:var(--ink);pointer-events:none}
+.om-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.om-sc{display:grid;gap:10px}
+.om-sc-row{display:grid;grid-template-columns:96px minmax(0,1fr) 52px;align-items:center;gap:10px;font-size:.78rem;color:var(--muted)}
+.om-sc-row .v{font-family:var(--mono);font-size:.76rem;color:var(--ink);text-align:right}
+.om-bar{display:flex;gap:2px;height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.om-bar i{display:block;height:100%;border-radius:4px;min-width:3px}
+.om-legend{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.76rem;color:var(--muted)}
+.om-legend li{display:flex;align-items:center;gap:6px}
+.om-sw{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.om-cmp{display:grid;gap:4px}
+.om-cmp-row{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;background:none;border:1px solid transparent;border-radius:var(--r-sm);padding:9px 10px;color:inherit;font:inherit}
+.om-cmp-row:hover,.om-cmp-row:focus-visible,.om-cmp-row.cur{background:var(--inner);border-color:var(--g-border)}
+.om-cmp-when{font-size:.8rem;font-weight:600}
+.om-cmp-bar{display:flex;gap:2px;height:14px}
+.om-cmp-bar i{display:block;height:100%;border-radius:4px;min-width:3px}
+.om-cmp-nums{font-size:.78rem;color:var(--muted);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.om-cmp-nums b{color:var(--ink);font-size:.9rem;font-weight:600}
+.om-table{margin-top:12px;font-size:.78rem}
+.om-table summary{cursor:pointer;font-weight:600;color:var(--muted)}
+.om-table div{overflow-x:auto;margin-top:8px}
+.om-table table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.om-table th,.om-table td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:400}
+.om-table th:first-child{text-align:left}
+.om-table thead th,.om-table .tot{font-weight:600}
+.om-table small{color:var(--muted)}
+.om-foot{font-size:.76rem;color:var(--muted);padding:0 4px}
+@media (max-width:820px){
+  .om-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .om-two{grid-template-columns:minmax(0,1fr)}
+  .om-cmp-row{grid-template-columns:minmax(0,1fr) auto}
+  .om-cmp-bar{grid-column:1/-1;order:3}
+}
+
 @keyframes ocard{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes ofade{from{opacity:0}to{opacity:1}}
 </style>
