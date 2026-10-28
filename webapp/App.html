@@ -269,16 +269,27 @@ function officeModel(){
   const flags=up.filter(x=>flagged(ci[x.iso+"|"+x.topic])).map(x=>({day:fmtShort(x.iso),topic:x.topic,issue:(ci[x.iso+"|"+x.topic].editor.issues||[])[0]}));
   const eds=up.map(x=>ci[x.iso+"|"+x.topic]).filter(e=>e&&e.editor&&e.editor.avg!=null).map(e=>+e.editor.avg);
   const sorted=sc.filter(s=>s.score!=null).slice().sort((a,b)=>b.score-a.score);
+  const edE=up.map(x=>ci[x.iso+"|"+x.topic]).filter(e=>e&&e.editor);
+  const changes={};((r&&r.change_log)||[]).forEach(e=>{if(e.op!=="KEEP")changes[e.op]=(changes[e.op]||0)+1});
+  const pubL=l=>plan.some(x=>x.lens===l&&x.status===ST.posted);
   return {runDate:r?fmtDate(iso(r.run_at)):"",runId:r?r.run_id:"",summary:r?r.summary:"",feedback:r?r.strategist_feedback:"",suggestions:r?r.pillar_lens_suggestions:"",
     ops:{added:num(r&&r.added)||0,edited:num(r&&r.edited)||0,dropped:num(r&&r.dropped)||0,moved:num(r&&r.moved)||0},stats:r&&r.agent_stats||null,
     posts:{n:sc.length,avg,avgTxt:f1(avg),dims:da,series:sc.map(s=>s.score).filter(v=>v!=null),best:sorted[0]||null,worst:sorted[sorted.length-1]||null,
-      reactions:sc.reduce((a,s)=>a+(s.reactions||0),0),impressions:sc.reduce((a,s)=>a+(s.impressions||0),0)},
+      reactions:sc.reduce((a,s)=>a+(s.reactions||0),0),impressions:sc.reduce((a,s)=>a+(s.impressions||0),0),
+      under:sorted.filter(s=>s.score<3.5).length,byPillar:groupAvg(sc,"pillar"),byLens:groupAvg(sc,"lens"),list:sc},
+    changes,
     queue:{covered,horizon:HORIZON,end:fmtShort(hz[hz.length-1]),backlogEnd:up.length?fmtShort(up[up.length-1].iso):"",count:up.length,flags,editorAvg:avgOf(eds),
+      kept:up.filter(x=>{const e=ci[x.iso+"|"+x.topic];return !e||e.op==="KEEP"}).length,beyond:up.filter(x=>x.iso>hz[hz.length-1]).length,
+      editorDims:DIMS.slice(0,4).map(([k,l])=>({k,l,v:avgOf(edE.map(e=>e.editor.potential&&e.editor.potential[k]).filter(v=>v!=null).map(Number))})),
+      editorUnder:edE.filter(e=>e.editor.avg!=null&&+e.editor.avg<3.5).length,dupes:edE.filter(e=>e.editor.duplicate_of).length,
       next:up.slice(0,4).map(x=>({day:fmtDay(x.iso),pillar:x.pillar,lens:x.lens,topic:x.topic,status:shortStatus(x.status)})),
       days:hz.map(d=>({d:fmtShort(d),x:up.find(u=>u.iso===d)}))},
     coverage:{pillars:P.length,lenses:Ls.length,published:P.filter(pub).length,inPlanP:P.filter(p=>plan.some(x=>x.pillar===p)).length,inPlanL:Ls.filter(l=>plan.some(x=>x.lens===l)).length,
-      never:P.filter(p=>!pub(p)).map(p=>({p,planned:up.find(x=>x.pillar===p)}))}};
+      never:P.filter(p=>!pub(p)).map(p=>({p,planned:up.find(x=>x.pillar===p)})),
+      neverL:Ls.filter(l=>!pubL(l)).map(l=>({l,planned:up.find(x=>x.lens===l)}))}};
 }
+function groupAvg(sc,k){const g={};sc.forEach(s=>{if(s.score!=null&&s[k])(g[s[k]]=g[s[k]]||[]).push(s.score)});
+  return Object.keys(g).map(l=>({l,v:avgOf(g[l]),n:g[l].length})).sort((a,b)=>b.v-a.v)}
 function viewOffice(){
   const r=run();
   return `<section class="office">
@@ -295,29 +306,84 @@ function viewOffice(){
   </section>`;
 }
 const fmtTok=n=>n==null?"–":n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"k":String(n);
-function usageBlock(st){
+const llmTok=st=>st&&st.kind==="llm"?(st.calls||[]).reduce((a,x)=>a+(x.tokens||0),0):null;
+const llmSec=st=>st&&st.kind==="llm"?(st.calls||[]).reduce((a,x)=>a+(x.duration_s||0),0):null;
+const fmtMin=s=>s==null?"–":Math.round(s/60*10)/10+"m";
+/* per = {n, unit}: adds a tokens-per-item row (per post scored, per idea reviewed). */
+function usageBlock(st,per){
   if(!st)return `<p class="muted" style="font-size:.84rem">Usage was not recorded for this run.</p>`;
-  if(st.kind==="llm"){const c=st.calls||[];const tok=c.reduce((a,x)=>a+(x.tokens||0),0),tl=c.reduce((a,x)=>a+(x.tool_uses||0),0),sec=c.reduce((a,x)=>a+(x.duration_s||0),0);
+  if(st.kind==="llm"){const c=st.calls||[];const tok=llmTok(st),tl=c.reduce((a,x)=>a+(x.tool_uses||0),0),sec=llmSec(st);
+    const perRow=per&&per.n&&tok?`<div class="row"><span class="tx">Tokens per ${per.unit}<small>${per.n} ${per.unit}s this run</small></span><span class="v">${fmtTok(Math.round(tok/per.n))}</span></div>`:"";
     return `<div class="oc-stats"><div class="stat"><b>${fmtTok(tok)}</b><span>Tokens</span></div><div class="stat"><b>${c.length}</b><span>Calls</span></div><div class="stat"><b>${tl}</b><span>Tool uses</span></div><div class="stat"><b>${Math.round(sec/60*10)/10}<small>m</small></b><span>Time</span></div></div>
-      <div class="rows">${c.map(x=>`<div class="row"><span class="tx">${esc(x.label)}<small>${x.tool_uses} tool uses · ${x.duration_s}s</small></span><span class="v">${fmtTok(x.tokens)}</span></div>`).join("")}</div>`}
+      <div class="rows">${c.map(x=>`<div class="row"><span class="tx">${esc(x.label)}<small>${x.tool_uses} tool uses · ${x.duration_s}s</small></span><span class="v">${fmtTok(x.tokens)}</span></div>`).join("")}${perRow}</div>`}
   if(st.kind==="script"){const m=st.metrics||{};return `<div class="oc-stats">${Object.keys(m).map(k=>`<div class="stat"><b>${esc(m[k])}</b><span>${esc(k.replace(/_/g," "))}</span></div>`).join("")}</div><p class="muted" style="font-size:.8rem;margin-top:8px">No model tokens: this step runs as scripts and browser reads inside the coordinator.</p>`}
   return `<p class="muted" style="font-size:.84rem">The coordinator is the main Claude Code session. Its own tokens aren't broken out per run yet.</p>`;
 }
 function dimRows(dims){return `<div class="cov">${dims.map(x=>`<div class="covrow"><span>${esc(x.l)}</span><span class="v">${f1(x.v)}</span><div class="meter"><i style="width:${x.v!=null?x.v/5*100:0}%;background:var(--accent)"></i></div></div>`).join("")}</div>`}
 function ocHead(eyebrow,title,sub,color){return `<div class="oc-h"><span class="oc-av" style="background:${color||"var(--accent)"}"></span><div style="flex:1;min-width:0"><span class="eyebrow">${esc(eyebrow)}</span><h3>${esc(title)}</h3>${sub?`<p class="muted">${esc(sub)}</p>`:""}</div><button class="oc-x" data-oclose aria-label="Close card">×</button></div>`}
 const ocSec=(t,b)=>`<section class="oc-sec"><span class="eyebrow">${t}</span>${b}</section>`;
+const ocNote=t=>`<p class="muted" style="font-size:.76rem">${t}</p>`;
+/* ---- per-run series for the Trend section: one value per run, oldest first, up to the run being viewed ---- */
+const statOf=(r,k)=>r.agent_stats&&r.agent_stats[k]||null;
+const ideasOf=r=>(r.change_log||[]).filter(e=>e.op!=="DROP").length;
+const editorAvgOf=r=>avgOf((r.change_log||[]).filter(e=>e.op!=="DROP"&&e.editor&&e.editor.avg!=null).map(e=>+e.editor.avg));
+const subOf=(r,f)=>{const v=["reviewer","strategist","editor"].map(k=>f(statOf(r,k)));return v.some(x=>x!=null)?v.reduce((a,x)=>a+(x||0),0):null};
+function series(f){const cur=run();return runs().filter(r=>!cur||String(r.run_id)<=String(cur.run_id)).reverse().map(f).filter(v=>v!=null)}
+function spark(vals){const w=64,h=20,lo=Math.min(...vals),sp=Math.max(...vals)-lo||1;
+  const xy=vals.map((v,i)=>[i/(vals.length-1)*w,h-2-(v-lo)/sp*(h-4)]);const [lx,ly]=xy[xy.length-1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="flex:none;overflow:visible"><polyline points="${xy.map(p=>p.map(n=>n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.2" fill="var(--accent)"/></svg>`}
+function trendRow(label,vals,fv){if(!vals.length)return "";const prev=vals.length>1?vals[vals.length-2]:null;
+  return `<div class="row"><span class="tx">${esc(label)}<small>${prev==null?"First recorded run · the trend starts next run":`${fv(prev)} last run · ${vals.length} runs`}</small></span>${vals.length>1?spark(vals):""}<span class="v">${fv(vals[vals.length-1])}</span></div>`}
+function trendSec(rows){const b=rows.join("");return b?ocSec("Trend · across runs",`<div class="rows">${b}</div>`):""}
+/* Labelled meters: [{l, sub, v (text), pct 0-1, color}] */
+function meterRows(list){return `<div class="cov">${list.map(x=>`<div class="covrow"><span>${esc(x.l)}${x.sub?` <small class="muted">${esc(x.sub)}</small>`:""}</span><span class="v">${x.v}</span><div class="meter"><i style="width:${Math.round((x.pct||0)*100)}%;background:${x.color||"var(--accent)"}"></i></div></div>`).join("")}</div>`}
+const groupRows=g=>meterRows(g.map(x=>({l:x.l,sub:x.n+(x.n===1?" post":" posts"),v:f1(x.v),pct:x.v/5})));
+function corr(a,b){const n=a.length,ma=avgOf(a),mb=avgOf(b);let sab=0,saa=0,sbb=0;for(let i=0;i<n;i++){const da=a[i]-ma,db=b[i]-mb;sab+=da*db;saa+=da*da;sbb+=db*db}return saa&&sbb?sab/Math.sqrt(saa*sbb):null}
+/* Content score (x) against impressions (y, log scale: a couple of posts reach 20x the rest), one dot per post. */
+function reachPlot(sc){
+  const pts=sc.filter(s=>s.score!=null&&s.impressions!=null);if(pts.length<3)return ocNote("Impressions weren't recorded for enough posts to compare.");
+  const W=300,H=132,L=34,R=8,Tp=8,B=22,maxI=Math.max(...pts.map(s=>s.impressions))||1;
+  const lg=v=>Math.log10(v+1),X=v=>L+(v-1)/4*(W-L-R),Y=v=>H-B-lg(v)/lg(maxI)*(H-B-Tp);const r=corr(pts.map(s=>s.score),pts.map(s=>lg(s.impressions)));
+  const tick=(v,t)=>`<text x="${X(v)}" y="${H-6}" text-anchor="middle">${t}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Content score against impressions for ${pts.length} posts" style="font-family:var(--mono);font-size:9px;fill:var(--muted)">
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--line)"/><line x1="${L}" y1="${Tp}" x2="${L}" y2="${H-B}" stroke="var(--line)"/>
+    ${[1,2,3,4,5].map(v=>tick(v,v)).join("")}<text x="${L-5}" y="${Tp+7}" text-anchor="end">${compact(maxI)}</text><text x="${L-5}" y="${H-B}" text-anchor="end">0</text>${maxI>3000?`<line x1="${L}" y1="${Y(1000)}" x2="${W-R}" y2="${Y(1000)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${L-5}" y="${Y(1000)+3}" text-anchor="end">1k</text>`:""}
+    ${pts.map(s=>`<circle cx="${X(s.score).toFixed(1)}" cy="${Y(s.impressions).toFixed(1)}" r="4" fill="var(--accent)" fill-opacity=".75" stroke="var(--surface)" stroke-width="1"><title>${esc(s.topic)} · score ${f1(s.score)} · ${fmtN(s.impressions)} impressions · ${fmtN(s.reactions)} reactions</title></circle>`).join("")}
+  </svg>`+ocNote(`Score along the bottom, impressions up the side on a log scale.${r!=null?` Correlation ${r.toFixed(2)} across ${pts.length} posts.`:""} Context only: engagement never counts toward the score.`);
+}
+const fmtN=n=>n==null?"–":Number(n).toLocaleString();
 function officeCard(id){
   const m=officeModel();const A=(window.Office&&Office.agents||[]).find(a=>a.id===id);const st=m.stats||{};
   if(A){
-    let score="";
-    if(id==="coordinator"){const tot=["reviewer","strategist","editor"].reduce((a,k)=>a+((st[k]&&st[k].calls)||[]).reduce((b,x)=>b+(x.tokens||0),0),0);
-      score=`<div class="oc-stats"><div class="stat"><b>+${m.ops.added}</b><span>Added</span></div><div class="stat"><b>${m.ops.edited}</b><span>Edited</span></div><div class="stat"><b>${m.ops.moved}</b><span>Moved</span></div><div class="stat"><b>${m.ops.dropped}</b><span>Dropped</span></div></div><div class="rows"><div class="row"><span class="tx">Subagent tokens this run</span><span class="v">${fmtTok(tot)}</span></div><div class="row"><span class="tx">Saturdays covered</span><span class="v">${m.queue.covered}/${m.queue.horizon}</span></div></div>`}
-    if(id==="collector")score=`<div class="rows"><div class="row"><span class="tx">Posts matched to rows</span><span class="v">${st.collector?st.collector.metrics.posts_matched+"/"+st.collector.metrics.posts_read:"–"}</span></div><div class="row"><span class="tx">Matching method</span><span class="v">publish date in URL</span></div></div>`;
-    if(id==="reviewer")score=`<div class="big" style="margin-bottom:8px"><span class="n" style="font-size:2rem">${m.posts.avgTxt}</span><span class="u">average of ${m.posts.n} posts</span></div>${dimRows(m.posts.dims)}${m.posts.best?`<div class="rows" style="margin-top:8px"><div class="row"><span class="tx">Best · ${esc(m.posts.best.topic)}<small>${esc(fmtShort(m.posts.best.date))}</small></span><span class="v">${f1(m.posts.best.score)}</span></div><div class="row"><span class="tx">Lowest · ${esc(m.posts.worst.topic)}<small>${esc(fmtShort(m.posts.worst.date))}</small></span><span class="v">${f1(m.posts.worst.score)}</span></div></div>`:""}`;
-    if(id==="strategist")score=`<div class="oc-stats"><div class="stat"><b>+${m.ops.added}</b><span>Ideas added</span></div><div class="stat"><b>${m.ops.edited}</b><span>Edited</span></div><div class="stat"><b>${m.coverage.inPlanP}/${m.coverage.pillars}</b><span>Pillars planned</span></div><div class="stat"><b>${m.coverage.inPlanL}/${m.coverage.lenses}</b><span>Lenses planned</span></div></div>${m.feedback?`<p style="font-size:.88rem;margin-top:10px">${esc(m.feedback)}</p>`:""}${m.suggestions?`<p class="muted" style="font-size:.82rem;margin-top:8px">Suggests ${esc(m.suggestions)}</p>`:""}`;
-    if(id==="editor")score=`<div class="oc-stats"><div class="stat"><b>${f1(m.queue.editorAvg)}</b><span>Avg potential</span></div><div class="stat"><b>${m.queue.flags.length}</b><span>Open flags</span></div><div class="stat"><b>${(st.editor&&st.editor.calls||[]).length||"–"}</b><span>Review passes</span></div></div>${m.queue.flags.length?`<div class="rows">${m.queue.flags.map(f=>`<div class="row"><span class="tx">${esc(f.day)} · ${esc(f.topic)}<small>${esc(f.issue)}</small></span></div>`).join("")}</div>`:""}`;
-    if(id==="writer")score=`<div class="rows"><div class="row"><span class="tx">Rule errors in the final proposal</span><span class="v">${st.writer?st.writer.metrics.rule_errors:"–"}</span></div><div class="row"><span class="tx">Rows touched</span><span class="v">queued only</span></div><div class="row"><span class="tx">Dropped ideas</span><span class="v">kept, never deleted</span></div></div>`;
-    return ocHead(A.kind,A.name,A.role,A.accent)+`<p class="oc-desc">${esc(A.desc)}</p>`+ocSec("In every run",`<ul class="since">${A.does.map(d=>`<li><span>${esc(d)}</span></li>`).join("")}</ul>`)+ocSec("Usage · last run",usageBlock(st[id]))+ocSec("Scorecard",score)+(m.stats&&m.stats.note&&A.kind==="Claude subagent"?`<p class="muted" style="font-size:.74rem;margin-top:10px">${esc(m.stats.note)}</p>`:"");
+    const R=run(),ag=k=>(Office.agents||[]).find(a=>a.id===k)||{name:k},metric=(k,f)=>r=>{const s=statOf(r,k);return s&&s.metrics?num(s.metrics[f]):null};
+    const tokRow=k=>trendRow("Tokens",series(r=>llmTok(statOf(r,k))),fmtTok);
+    let score="",extra=[],trend=[],per=null;
+    if(id==="coordinator"){const ks=["reviewer","strategist","editor"],secs=ks.map(k=>llmSec(st[k])||0),tSec=secs.reduce((a,x)=>a+x,0),tot=ks.reduce((a,k)=>a+(llmTok(st[k])||0),0);
+      score=`<div class="oc-stats"><div class="stat"><b>+${m.ops.added}</b><span>Added</span></div><div class="stat"><b>${m.ops.edited}</b><span>Edited</span></div><div class="stat"><b>${m.ops.moved}</b><span>Moved</span></div><div class="stat"><b>${m.ops.dropped}</b><span>Dropped</span></div></div><div class="rows"><div class="row"><span class="tx">Subagent tokens this run</span><span class="v">${fmtTok(tot)}</span></div><div class="row"><span class="tx">Subagent time this run<small>Sum of the subagent calls; the coordinator's own steps aren't timed</small></span><span class="v">${fmtMin(tSec)}</span></div><div class="row"><span class="tx">Saturdays covered</span><span class="v">${m.queue.covered}/${m.queue.horizon}</span></div></div>`;
+      if(tSec)extra.push(ocSec("Time by agent",meterRows(ks.map((k,i)=>({l:ag(k).name,v:`${fmtMin(secs[i])} · ${Math.round(secs[i]/tSec*100)}%`,pct:secs[i]/tSec,color:ag(k).accent})))));
+      trend=[trendRow("Subagent tokens",series(r=>subOf(r,llmTok)),fmtTok),trendRow("Subagent time",series(r=>subOf(r,llmSec)),fmtMin)]}
+    if(id==="collector"){score=`<div class="rows"><div class="row"><span class="tx">Posts matched to rows</span><span class="v">${st.collector?st.collector.metrics.posts_matched+"/"+st.collector.metrics.posts_read:"–"}</span></div><div class="row"><span class="tx">Matching method</span><span class="v">publish date in URL</span></div></div>`;
+      trend=[trendRow("Posts read",series(metric("collector","posts_read")),String)]}
+    if(id==="reviewer"){const p=m.posts;per={n:p.n,unit:"post"};
+      score=`<div class="big" style="margin-bottom:8px"><span class="n" style="font-size:2rem">${p.avgTxt}</span><span class="u">average of ${p.n} posts${p.best?` · range ${f1(p.worst.score)} to ${f1(p.best.score)}`:""}</span></div>${dimRows(p.dims)}${p.best?`<div class="rows" style="margin-top:8px"><div class="row"><span class="tx">Best · ${esc(p.best.topic)}<small>${esc(fmtShort(p.best.date))}</small></span><span class="v">${f1(p.best.score)}</span></div><div class="row"><span class="tx">Lowest · ${esc(p.worst.topic)}<small>${esc(fmtShort(p.worst.date))}</small></span><span class="v">${f1(p.worst.score)}</span></div><div class="row"><span class="tx">Posts under 3.5</span><span class="v">${p.under} of ${p.n}</span></div></div>`:""}`;
+      if(p.byPillar.length)extra.push(ocSec("Average by pillar",groupRows(p.byPillar)));
+      if(p.byLens.length)extra.push(ocSec("Average by lens",groupRows(p.byLens)));
+      if(p.n)extra.push(ocSec("Quality vs reach",reachPlot(p.list)));
+      trend=[tokRow("reviewer"),trendRow("Average score",series(r=>avgOf(scoresFor(r).map(s=>s.score).filter(v=>v!=null))),f1)]}
+    if(id==="strategist"){per={n:R?ideasOf(R):0,unit:"idea"};const c=m.changes;
+      score=`<div class="oc-stats"><div class="stat"><b>${m.coverage.inPlanP}/${m.coverage.pillars}</b><span>Pillars planned</span></div><div class="stat"><b>${m.coverage.inPlanL}/${m.coverage.lenses}</b><span>Lenses planned</span></div><div class="stat"><b>${m.queue.beyond}</b><span>Past the horizon</span></div></div>${m.feedback?`<p style="font-size:.88rem;margin-top:10px">${esc(m.feedback)}</p>`:""}${m.suggestions?`<p class="muted" style="font-size:.82rem;margin-top:8px">Suggests ${esc(m.suggestions)}</p>`:""}`;
+      const ops=[["Kept as is",m.queue.kept],["Added",c.ADD],["Edited",c.EDIT],["Edited and moved",c["EDIT+MOVE"]],["Moved",c.MOVE],["Dropped",c.DROP]].filter(x=>x[1]);const tot=ops.reduce((a,x)=>a+x[1],0);
+      if(tot)extra.push(ocSec("Queue changes",meterRows(ops.map(([l,n])=>({l,v:String(n),pct:n/tot})))));
+      const nv=m.coverage.never.map(x=>({name:x.p,kind:"Pillar",planned:x.planned})).concat(m.coverage.neverL.map(x=>({name:x.l,kind:"Lens",planned:x.planned})));
+      if(nv.length)extra.push(ocSec("Never published",`<div class="rows">${nv.map(x=>`<div class="row"><span class="tx">${esc(x.name)}<small>${x.kind}</small></span><span class="v">${x.planned?"planned "+esc(fmtShort(x.planned.iso)):"not planned"}</span></div>`).join("")}</div>`));
+      trend=[tokRow("strategist"),trendRow("Ideas added",series(r=>num(r.added)),String)]}
+    if(id==="editor"){const q=m.queue;per={n:R?ideasOf(R):0,unit:"idea"};
+      score=`<div class="oc-stats"><div class="stat"><b>${f1(q.editorAvg)}</b><span>Avg potential</span></div><div class="stat"><b>${q.flags.length}</b><span>Open flags</span></div><div class="stat"><b>${q.editorUnder}</b><span>Under 3.5</span></div><div class="stat"><b>${q.dupes}</b><span>Duplicates</span></div><div class="stat"><b>${(st.editor&&st.editor.calls||[]).length||"–"}</b><span>Review passes</span></div></div>${q.flags.length?`<div class="rows">${q.flags.map(f=>`<div class="row"><span class="tx">${esc(f.day)} · ${esc(f.topic)}<small>${esc(f.issue)}</small></span></div>`).join("")}</div>`:""}`;
+      if(q.editorDims.some(x=>x.v!=null))extra.push(ocSec("Potential by dimension",dimRows(q.editorDims)));
+      trend=[tokRow("editor"),trendRow("Average potential",series(editorAvgOf),f1)]}
+    if(id==="writer"){score=`<div class="rows"><div class="row"><span class="tx">Rule errors in the final proposal</span><span class="v">${st.writer?st.writer.metrics.rule_errors:"–"}</span></div><div class="row"><span class="tx">Rows touched</span><span class="v">queued only</span></div><div class="row"><span class="tx">Dropped ideas</span><span class="v">kept, never deleted</span></div></div>`;
+      trend=[trendRow("Schedule rows written",series(metric("writer","schedule_rows")),String)]}
+    return ocHead(A.kind,A.name,A.role,A.accent)+`<p class="oc-desc">${esc(A.desc)}</p>`+ocSec("In every run",`<ul class="since">${A.does.map(d=>`<li><span>${esc(d)}</span></li>`).join("")}</ul>`)+ocSec("Usage · last run",usageBlock(st[id],per))+ocSec("Scorecard",score)+extra.join("")+trendSec(trend)+(m.stats&&m.stats.note&&A.kind==="Claude subagent"?`<p class="muted" style="font-size:.74rem;margin-top:10px">${esc(m.stats.note)}</p>`:"");
   }
   const C={
     tv:()=>ocHead("Wall screen","Run dashboard",m.runDate)+`<p class="oc-desc">${esc(m.summary)}</p>`+ocSec("This run",`<div class="oc-stats"><div class="stat"><b>${m.posts.avgTxt}</b><span>Content score</span></div><div class="stat"><b>${m.queue.covered}/${m.queue.horizon}</b><span>Saturdays</span></div><div class="stat"><b>+${m.ops.added}</b><span>Added</span></div><div class="stat"><b>${m.queue.flags.length}</b><span>Flags</span></div></div>`),
