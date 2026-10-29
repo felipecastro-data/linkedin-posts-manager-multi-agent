@@ -1,0 +1,18 @@
+{
+  "name": "linkedin-posts-pages",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 ../scripts/preview_webapp.py --pages",
+    "dev": "npm run build && wrangler pages dev --port 8791",
+    "deploy:preview": "npm run build && wrangler pages deploy --branch preview",
+    "deploy:prod": "npm run build && wrangler pages deploy --branch main"
+  },
+  "devDependencies": {
+    "wrangler": "^4.155.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261023.1": true
+  }
+}

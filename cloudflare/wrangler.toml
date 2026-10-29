@@ -1,0 +1,10 @@
+name = "linkedin-posts"
+pages_build_output_dir = "public"
+compatibility_date = "2026-10-01"
+
+[vars]
+SPREADSHEET_ID = "1zKbL54y6twj1ySJu1zjPuJwoo8frfXE1aBc82jsbMsA"
+ACCESS_TEAM_DOMAIN = "odd-paper-fda0.cloudflareaccess.com"
+# Application Audience (AUD) tag of the "LinkedIn Posts Manager" Access application, comma-separated list allowed;
+# until set, /api/* returns 401.
+ACCESS_AUD = "73882b126ec6349a26b495cee5f591ba0cc9a8ab88749919af2fb754a2dbc9a9"

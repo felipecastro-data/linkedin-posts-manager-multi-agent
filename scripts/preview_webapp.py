@@ -4,6 +4,10 @@ Usage: python3 scripts/preview_webapp.py runs/<id> [--today YYYY-MM-DD]
 Writes webapp/preview/index.html (gitignored): Index.html with its includes
 inlined and google.script.run replaced by a stub that returns the same payload
 shape as Code.js getData(), built from the run's sheet_raw.json and writes.json.
+
+--pages writes cloudflare/public/index.html instead (gitignored): the same
+inlined page with no stub and no data, for Cloudflare Pages (`npm run build`
+in cloudflare/).
 """
 
 import argparse
@@ -14,6 +18,7 @@ from pathlib import Path
 from common import ROOT, read_json
 
 WEBAPP = ROOT / "webapp"
+PAGES_OUT = ROOT / "cloudflare" / "public" / "index.html"
 SCHEDULE_KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url"]
 
 
@@ -63,22 +68,33 @@ def payload(run, today):
             "sheet_url": "https://docs.google.com/spreadsheets/d/1zKbL54y6twj1ySJu1zjPuJwoo8frfXE1aBc82jsbMsA/edit"}
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("run")
-    ap.add_argument("--today", default="2026-10-25")
-    a = ap.parse_args()
-    data = json.dumps(payload(Path(a.run), a.today), ensure_ascii=False)
+def page_html():
+    """Index.html with its includes inlined and the viewport tag doGet() adds through addMetaTag."""
     html = (WEBAPP / "Index.html").read_text(encoding="utf-8")
     html = re.sub(r"<\?!= include\('(\w+)'\) \?>",
                   lambda m: (WEBAPP / f"{m.group(1)}.html").read_text(encoding="utf-8"), html)
+    return html.replace("<meta charset=\"utf-8\">", "<meta charset=\"utf-8\">\n<meta name=\"viewport\" "
+                        "content=\"width=device-width, initial-scale=1, viewport-fit=cover\">", 1)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run", nargs="?")
+    ap.add_argument("--today", default="2026-10-25")
+    ap.add_argument("--pages", action="store_true")
+    a = ap.parse_args()
+    if a.pages:
+        PAGES_OUT.write_text(page_html(), encoding="utf-8")
+        print(f"wrote {PAGES_OUT.relative_to(ROOT)}")
+        return
+    if not a.run:
+        ap.error("run is required without --pages")
+    data = json.dumps(payload(Path(a.run), a.today), ensure_ascii=False)
+    html = page_html()
     stub = ("<script>window.google={script:{run:(function(){const h={};const r={withSuccessHandler(f){h.ok=f;return r},"
             "withFailureHandler(f){h.err=f;return r},getData(){setTimeout(()=>h.ok(JSON.stringify(window.__DATA__)),150)}};"
             "return r})()}};window.__DATA__=" + data.replace("</", "<\\/") + ";</script>")
     html = html.replace("<body>", "<body>\n" + stub, 1)
-    # doGet() adds this through addMetaTag in Apps Script
-    html = html.replace("<meta charset=\"utf-8\">", "<meta charset=\"utf-8\">\n<meta name=\"viewport\" "
-                        "content=\"width=device-width, initial-scale=1, viewport-fit=cover\">", 1)
     out = WEBAPP / "preview" / "index.html"
     out.parent.mkdir(exist_ok=True)
     out.write_text(html, encoding="utf-8")

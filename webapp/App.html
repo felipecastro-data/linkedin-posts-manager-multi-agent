@@ -564,13 +564,24 @@ document.addEventListener("pointermove",e=>{
 document.addEventListener("change",e=>{if(e.target.id==="runSel"){S.runId=e.target.value;ls.set("lp.run",S.runId);render();window.scrollTo({top:0})}});
 
 /* ---------- load ---------- */
+/* getData comes from google.script.run inside Apps Script, else from POST api/getData on Cloudflare Pages
+   (cloudflare/functions/api/[fn].js); both return the same JSON string. */
+function getData(ok,fail){
+  if(typeof google!=="undefined"&&google.script){google.script.run.withSuccessHandler(ok).withFailureHandler(fail).getData();return}
+  /* An expired Access session redirects to the login page, so reload into it. */
+  fetch("api/getData",{method:"POST",redirect:"manual",cache:"no-store",headers:{"Content-Type":"application/json"},body:"[]"})
+    .then(res=>{
+      if(res.type==="opaqueredirect"){location.reload();return new Promise(()=>{})}
+      return res.json().then(b=>{if(!res.ok)throw new Error(b.error||"HTTP "+res.status);return b.result})})
+    .then(ok,fail);
+}
 function load(){
-  google.script.run.withSuccessHandler(raw=>{
+  getData(raw=>{
     const first=!S.loaded;S.d=JSON.parse(raw);S.err=null;S.loaded=true;
     const saved=ls.get("lp.run");const rs=runs();
     if(!S.runId||!rs.some(r=>r.run_id===S.runId))S.runId=(saved&&rs.some(r=>r.run_id===saved))?saved:(rs[0]&&rs[0].run_id);
     render(!first);
-  }).withFailureHandler(err=>{S.err=(err&&err.message)||String(err);render()}).getData();
+  },err=>{S.err=(err&&err.message)||String(err);render()});
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.loaded)load()});
 renderNav();load();

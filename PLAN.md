@@ -167,6 +167,7 @@ scripts/
   build_writes.py                     exact sheet writes for an approved run (sends nothing)
 runs/<run_id>/                        json files per run (gitignored)
 webapp/                               Apps Script project (Phase 3, clasp)
+cloudflare/                           Cloudflare Pages host of the same web app (home-screen icon)
 ```
 
 ## Phases
@@ -190,6 +191,32 @@ webapp/                               Apps Script project (Phase 3, clasp)
      so the URL stays the same.
    - Editor verdicts (avg, potential, issues) are stored per idea in the Agent Runs
      Change Log, which now lists every queue entry, KEEP included.
+   - **Cloudflare Pages (primary on the phone)**: Apps Script serves the page inside a
+     Google iframe, so iOS never sees an app icon. Pages project `linkedin-posts`
+     (https://linkedin-posts-86b.pages.dev, branch `main`; preview
+     https://preview.linkedin-posts-86b.pages.dev, branch `preview`) serves the same
+     `webapp/` page behind Cloudflare Access (team `odd-paper-fda0.cloudflareaccess.com`,
+     application "LinkedIn Posts Manager" on `linkedin-posts-86b.pages.dev` and
+     `*.linkedin-posts-86b.pages.dev`, policy "Only me"). The Apps Script app stays live
+     as a fallback.
+     - `cloudflare/functions/api/[fn].js`: `POST /api/getData`, a port of Code.js
+       `getData()` on the Sheets API, same JSON string. **A change to `getData()` in
+       Code.js must be made there too.** Verifies the `Cf-Access-Jwt-Assertion` token
+       (fails closed) and reads as the service account
+       `expenses-reader@expenses-tracker-513017.iam.gserviceaccount.com` (shared with the
+       other Pages apps; needs Viewer on the LinkedIn Posts sheet).
+     - `App.html` `getData()` uses `google.script.run` when present, else the fetch.
+     - Pages secret (production + preview): `GOOGLE_SA_KEY`. `cloudflare/wrangler.toml`
+       vars: `SPREADSHEET_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`.
+     - `cloudflare/public/`: icons (`apple-touch-icon.png` 180, `icon-192/512.png`,
+       `favicon-32.png`) and `manifest.webmanifest`; `index.html` there is built by
+       `python3 scripts/preview_webapp.py --pages` (gitignored). Home-screen `<head>`
+       tags live in `Index.html`.
+     - `cloudflare/.dev.vars` (gitignored): `DEV_NO_ACCESS=1`, `GOOGLE_SA_KEY`; the
+       `pages-dev` launch entry runs it at http://localhost:8791 with live sheet data.
+     - Ship: `cd cloudflare && npm run deploy:preview`, check on the iPhone, then
+       `npm run deploy:prod`. Also `clasp push` for the fallback. iOS caches home-screen
+       icons: after an icon change, delete the home-screen app and add it again.
 4. **Office** (done, v2 deployment): a 3D tab in the same web app (`webapp/Office.html`,
    three.js r147 from jsDelivr, loaded only when the tab opens). Isometric cut-away
    room after the reference render; six androids built in code from the three

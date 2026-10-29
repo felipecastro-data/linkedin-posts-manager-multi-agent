@@ -4,8 +4,27 @@
     {
       "name": "webapp-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8771", "--directory", "webapp/preview"],
-      "port": 8771, "autoPort": false
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8771",
+        "--directory",
+        "webapp/preview"
+      ],
+      "port": 8771,
+      "autoPort": false
+    },
+    {
+      "name": "pages-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "cloudflare",
+        "run",
+        "dev"
+      ],
+      "port": 8791,
+      "autoPort": false
     }
   ]
 }

@@ -2,3 +2,9 @@ runs/
 .DS_Store
 __pycache__/
 webapp/preview/
+
+# Cloudflare Pages
+cloudflare/public/index.html
+cloudflare/.dev.vars
+cloudflare/.wrangler/
+cloudflare/node_modules/
