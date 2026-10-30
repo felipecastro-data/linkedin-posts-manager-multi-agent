@@ -31,8 +31,9 @@ replays each run with six android agents around one table.
 - [The web app](#the-web-app)
 - [The Office](#the-office)
 - [Project layout](#project-layout)
-- [Setup and usage](#setup-and-usage)
+- [Run it yourself](#run-it-yourself)
 - [Security and privacy](#security-and-privacy)
+- [Author & Certifications](#-author--certifications)
 
 ## What it does
 
@@ -359,23 +360,127 @@ docs/images/                       README screenshots
 PLAN.md                            design notes and decisions
 ```
 
-## Setup and usage
+## Run it yourself
 
-**Requirements**: [Claude Code](https://claude.com/claude-code) with the Google Sheets
-connector and Claude in Chrome, Python 3.11+ (standard library only), and a Google Sheet
-with the `LinkedIn Posts`, `Post Scores` and `Agent Runs` tabs. For the web app:
-[`clasp`](https://github.com/google/clasp) and, optionally, Node and Wrangler for Cloudflare.
+The pipeline runs locally in Claude Code on your own machine. LinkedIn is read through
+your signed-in Chrome, so it does not run in CI. Plan about an hour for the first setup.
 
-1. Point `config/strategy.toml` at your spreadsheet and LinkedIn profile.
-2. Edit `config/rules.md` and `config/rubric.md` for your own voice.
-3. In Claude Code, from the repo root:
+### 1. Prerequisites
 
-   ```text
-   /linkedin-ideas dry-run    # full pipeline, no sheet writes
-   /linkedin-ideas            # same, then asks for approval and writes
-   ```
+| Need | Why |
+|---|---|
+| [Claude Code](https://claude.com/claude-code) | Runs the `/linkedin-ideas` skill and the three subagents |
+| Google Sheets connector in Claude Code | Reads and writes the sheet (`get_values`, `update_values`, `update_spreadsheet`, `get_spreadsheet`) |
+| Claude in Chrome extension, signed in to LinkedIn | Reads the full text of your published posts |
+| Python 3.11+ | Scripts use the standard library only (`tomllib`); nothing to `pip install` |
+| A Google account | Hosts the sheet and, optionally, the Apps Script web app |
+| *Optional:* Node 18+, [`clasp`](https://github.com/google/clasp), a Cloudflare account | Web app deploys |
 
-**Preview the web app locally** with data from a run:
+### 2. Get the code
+
+```bash
+git clone https://github.com/felipecastro-data/linkedin-posts-manager-multi-agent.git
+```
+
+### 3. Build the Google Sheet
+
+Create a spreadsheet with three tabs. The scripts find the tables by their **header text**,
+so the names below must match exactly. Turn each range into a Sheets table
+(*Format → Convert to table*); the writer grows the tables through their table IDs.
+
+**Tab `LinkedIn Posts`**
+
+| Table | Where | Content |
+|---|---|---|
+| Pillars | a cell reading `Pillars` above the schedule (e.g. B4), one pillar per row below it, no blank rows | Your content themes (e.g. PySpark, SQL, Data Lakehouse) |
+| Lenses | a cell reading `Lenses` (e.g. D4), one lens per row below it | The angle a post takes (e.g. Performance, Cost, Trade-offs) |
+| Posts Schedule | header row 21, columns B:I | `Date` · `Pillar` · `Lenses` · `Topic` · `Status` · `Rationale` · `Source` · `LinkedIn URL` |
+
+- `Status` dropdown: `Created & Posted`, `Created & Scheduled`, `Not Created / In Queue`, `Dropped`.
+- `Source` dropdown: `Me`, `Agent`.
+- Add a row for each post already on LinkedIn with status `Created & Posted`. The agent
+  only ever changes `Not Created / In Queue` rows.
+
+**Tab `Post Scores`** — header in row 1, columns A:R:
+`Run ID` · `Scored At` · `Post Date` · `Pillar` · `Lens` · `Topic` · `LinkedIn URL` ·
+`Senior Depth` · `Specificity` · `Narrow Scope` · `Credibility` · `Voice` · `Score` · `Notes` ·
+`Reactions` · `Comments` · `Reposts` · `Impressions`
+
+**Tab `Agent Runs`** — header in row 1, columns A:M:
+`Run ID` · `Run At` · `Summary` · `Strategist Feedback` · `Pillar / Lens Suggestions` ·
+`Coverage Before` · `Coverage After` · `Added` · `Edited` · `Dropped` · `Moved` ·
+`Change Log` · `Agent Stats`
+
+### 4. Point the config at your sheet
+
+Edit [`config/strategy.toml`](config/strategy.toml):
+
+- `[sheet] spreadsheet_id`: the ID in your sheet's URL.
+- `schedule_sheet_id`, `score_sheet_id`, `runs_sheet_id`: each tab's `gid` (in the URL when the tab is open).
+- `schedule_table_id`, `score_table_id`, `runs_table_id`: ask Claude Code
+  *"call get_spreadsheet on <id> and list each table's tableId"*.
+- `schedule_header_row` if your schedule header is not on row 21.
+- `[linkedin] profile_url` and `activity_url`: your profile.
+- `[schedule]` and `[rotation]`: posting day, horizon and rotation limits to taste.
+
+### 5. Make it yours
+
+The prompts are written for one person. Replace these before the first run:
+
+| File | Change |
+|---|---|
+| `.claude/skills/linkedin-ideas/SKILL.md` | Your name, your LinkedIn `recent-activity` URL, your time zone (`America/Bogota`) |
+| `.claude/agents/*.md` | Your name (the owner the agents report to) |
+| `config/rules.md` | **Your** writing voice, audience and banned patterns; the Reviewer scores against it |
+| `config/rubric.md` | Scoring dimensions, if your audience is not senior data engineers |
+| `scripts/match.py`, `webapp/Code.js`, `cloudflare/functions/api/[fn].js` | Time zone (`America/Bogota`) |
+
+```bash
+grep -rn "Felipe\|felipecastro-data\|America/Bogota" .claude config scripts webapp cloudflare/functions
+```
+
+### 6. First run
+
+Open Claude Code in the repo folder, make sure Chrome is signed in to LinkedIn, then:
+
+```text
+/linkedin-ideas dry-run
+```
+
+A dry run does every step up to the approval view and writes nothing to the sheet. All
+intermediate files land in `runs/<run_id>/` (gitignored), so you can inspect the scores,
+proposal, Editor review and `diff.md`. When the proposals look right:
+
+```text
+/linkedin-ideas
+```
+
+It shows the diff and asks you to accept all, some (by date or row) or none before writing.
+About once a month is enough to keep 13 Saturdays covered.
+
+### 7. Optional: the web app on Apps Script
+
+```bash
+npm install -g @google/clasp
+```
+
+```bash
+clasp login
+```
+
+`.clasp.json` points at the author's script. Create a blank project at
+[script.google.com](https://script.google.com), copy its ID from *Project Settings → Script ID*,
+put it in `.clasp.json` as `scriptId` (keep the other settings), and push:
+
+```bash
+clasp push -f
+```
+
+In the Apps Script editor: *Project Settings → Script properties* → add `SPREADSHEET_ID`
+with your sheet ID, then *Deploy → New deployment → Web app*, **Execute as: Me**,
+**Who has access: Only myself**.
+
+To preview locally with data from a run, without deploying:
 
 ```bash
 python3 scripts/preview_webapp.py runs/<run_id>
@@ -385,23 +490,38 @@ python3 scripts/preview_webapp.py runs/<run_id>
 python3 -m http.server 8771 --directory webapp/preview
 ```
 
-**Deploy**:
+### 8. Optional: Cloudflare Pages (home-screen app on iPhone)
 
-```bash
-clasp push -f
-```
+Apps Script serves pages inside a Google iframe, so iOS shows no app icon. The Cloudflare
+host serves the same page with its own icon and manifest.
 
-```bash
-cd cloudflare && npm run deploy:preview
-```
+1. Create a Google Cloud **service account**, download its JSON key, and share the sheet
+   with its email as **Viewer**.
+2. Create a Cloudflare Pages project and a **Cloudflare Access** application on its domain
+   (and `*.` preview subdomain) with a policy that allows only your email.
+3. In [`cloudflare/wrangler.toml`](cloudflare/wrangler.toml) set `name`,
+   `SPREADSHEET_ID`, `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (the Access application's
+   audience tag).
+4. Add the key JSON as the `GOOGLE_SA_KEY` secret (Pages → Settings → Variables and Secrets,
+   for Production and Preview), or from the CLI:
 
-```bash
-cd cloudflare && npm run deploy:prod
-```
+   ```bash
+   cd cloudflare && npx wrangler pages secret put GOOGLE_SA_KEY
+   ```
 
-The Cloudflare function needs a `GOOGLE_SA_KEY` Pages secret (a service account with
-Viewer on the sheet) and the `SPREADSHEET_ID`, `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` vars in
-`wrangler.toml`. A change to `getData()` in `webapp/Code.js` must be mirrored in
+5. Deploy:
+
+   ```bash
+   cd cloudflare && npm install && npm run deploy:preview
+   ```
+
+   ```bash
+   cd cloudflare && npm run deploy:prod
+   ```
+
+For local development with live data, create `cloudflare/.dev.vars` with
+`DEV_NO_ACCESS=1` and `GOOGLE_SA_KEY=...` (gitignored), then `npm run dev` in `cloudflare/`.
+A change to `getData()` in `webapp/Code.js` must be mirrored in
 `cloudflare/functions/api/[fn].js`.
 
 ## Security and privacy
@@ -414,3 +534,14 @@ Viewer on the sheet) and the `SPREADSHEET_ID`, `ACCESS_TEAM_DOMAIN` and `ACCESS_
 - `runs/` (post text, scores, proposals) is gitignored.
 - The agents never sign in, never write posts and never publish. Sheet writes happen only
   after explicit approval.
+
+---
+
+## 🏅 Author & Certifications
+
+**Felipe Castro**
+Senior Data Engineer @ EPAM Systems
+
+- 🏅 **[DP-700: Microsoft Certified: Fabric Data Engineer Associate](https://learn.microsoft.com/api/credentials/share/en-us/FelipeCastro-8026/96572499DF943EBC?sharingId=13D660F56C1DFFA3)**
+- 🏅 **[DP-600: Microsoft Certified: Fabric Analytics Engineer Associate](https://learn.microsoft.com/api/credentials/share/en-us/FelipeCastro-8026/6C5A2F5A8A5864FC?sharingId=13D660F56C1DFFA3)**
+- 🏅 **[PL-300: Microsoft Certified: Power BI Data Analyst Associate](https://learn.microsoft.com/api/credentials/share/en-us/FelipeCastro-8026/F853AABE365874B3?sharingId=13D660F56C1DFFA3)**
