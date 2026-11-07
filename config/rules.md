@@ -16,7 +16,8 @@ marked **[ideas]** to proposed topics.
 - Lead with the problem or the lesson, not a brag. "A mistake I made / a
   problem I hit / a decision I had to make, and what I learned" reads as
   useful. "Look what I built" reads as self-promotional. **[ideas]**
-- Structure: problem -> reasoning -> takeaway. Grounded and professional.
+- Structure: problem -> what I did or got wrong -> result. End on the last
+  fact or on what is still unresolved. Grounded and professional.
 - Narrow scope: one decision, not a topic overview. **[ideas]**
 
 ## Length and format
@@ -47,8 +48,8 @@ marked **[ideas]** to proposed topics.
   "any engine can do this"). Allowed in at most one post out of three, and
   only when Felipe says so.
 - Opening with "I built / I tested / I reviewed / I needed to".
-- Wrapping up with a lesson every time. Some posts end after the fact or on
-  something unresolved.
+- Closing with a lesson or takeaway, unless Felipe asked for one. Posts end
+  after the fact or on something unresolved.
 
 ## Avoid (influencer patterns)
 
