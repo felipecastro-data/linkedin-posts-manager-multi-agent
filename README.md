@@ -234,17 +234,6 @@ xychart-beta
 Best post 4.6, weakest 2.6. Narrow scope is the strength; Voice is the weakest
 dimension, which is why the Strategist's feedback focuses on length and banned openers.
 
-Clarity became the sixth dimension on 2026-11-10. The run that day
-(`r20261110-0935`, 14 posts) averaged 3.45:
-
-```mermaid
-xychart-beta
-    title "Average score by dimension (14 posts, Nov 10 run)"
-    x-axis ["Senior depth", "Specificity", "Narrow scope", "Credibility", "Voice", "Clarity"]
-    y-axis "Score (1-5)" 0 --> 5
-    bar [3.0, 3.86, 4.0, 3.64, 2.79, 3.43]
-```
-
 ### Queue changes
 
 | Added | Edited | Moved | Dropped | Rule errors |
@@ -292,6 +281,19 @@ pie showData
 
 About 37k tokens per idea in the queue; the revision round (v2 + final review) is 47% of
 all tokens, the price of having an independent critic.
+
+## Results after adding Clarity
+
+Clarity became the sixth dimension on 2026-11-10. The run that day
+(`r20261110-0935`, 14 posts) averaged 3.45:
+
+```mermaid
+xychart-beta
+    title "Average score by dimension (14 posts, Nov 10 run)"
+    x-axis ["Senior depth", "Specificity", "Narrow scope", "Credibility", "Voice", "Clarity"]
+    y-axis "Score (1-5)" 0 --> 5
+    bar [3.0, 3.86, 4.0, 3.64, 2.79, 3.43]
+```
 
 ## The web app
 
