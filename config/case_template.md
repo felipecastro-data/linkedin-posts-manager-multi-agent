@@ -139,6 +139,8 @@ STEP 9. Evidence pack (final output)
 Plain text, ready to paste into my drafting template:
 - Topic: the idea, rewritten to match what we actually found.
 - Lens:
+- Plain version: one sentence, under 30 words, no product terms or
+  error codes: what happened, why, what fixed it.
 - Real anchor: the decision and at most three numbers. Each with its
   source (cell, screen) and method (runs, warm/cold, compute size).
 - What actually happened: 3-5 lines from the FIELD LOG (what I tried

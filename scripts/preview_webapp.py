@@ -46,12 +46,12 @@ def payload(run, today):
     schedule = [dict(zip(SCHEDULE_KEYS, r)) for r in by_tab["LinkedIn Posts"]]
 
     score_hdr = ["Run ID", "Scored At", "Post Date", "Pillar", "Lens", "Topic", "LinkedIn URL", "Senior Depth",
-                 "Specificity", "Narrow Scope", "Credibility", "Voice", "Score", "Notes", "Reactions", "Comments",
+                 "Specificity", "Narrow Scope", "Credibility", "Voice", "Clarity", "Score", "Notes", "Reactions", "Comments",
                  "Reposts", "Impressions"]
     scores = []
     for r in by_tab.get("Post Scores", []):
         o = dict(zip(map(slug, score_hdr), [str(v) for v in r]))
-        o["score"] = str(round(sum(r[7:12]) / 5, 1))
+        o["score"] = str(round(sum(r[7:13]) / 6, 1))
         scores.append(o)
 
     runs_hdr = ["Run ID", "Run At", "Summary", "Strategist Feedback", "Pillar / Lens Suggestions", "Coverage Before",

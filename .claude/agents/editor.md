@@ -31,7 +31,9 @@ new ideas; you say what is wrong and what a fix should achieve.
    tooling.
 4. **Wording**: the topic avoids the banned and avoid lists in `rules.md`
    (bait openers, "nobody talks about", "unpopular opinion", brag framing,
-   negation-reversal). Max 25 words.
+   negation-reversal). Max 25 words. Plain core: the idea's point can be
+   said in one plain sentence a data engineer who doesn't use this tool
+   would follow. If it only makes sense with product jargon, flag it.
 5. **Potential score** per `rubric.md`, ideas column: senior depth,
    specificity, narrow scope, credibility, 1-5 each. Fails if the average
    is below 3.5 or any dimension is below 3.

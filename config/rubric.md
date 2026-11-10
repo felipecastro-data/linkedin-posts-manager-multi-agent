@@ -14,13 +14,22 @@ dimensions used, rounded to one decimal.
 | **Narrow scope** | Topic overview or listicle. | One topic with a few sub-points. | One decision, one bug or one setting, followed through. |
 | **Credibility** | Numbers or scenario look invented, or relies on employer/client material. | Plausible but not clearly reproducible. | Grounded in something reproducible in a personal setup; numbers trace to a test. |
 | **Voice** | Several banned patterns, hype or bait (see `rules.md`). | One or two slips. | Fully follows `rules.md`; problem-first, no hype. |
+| **Clarity** | A data engineer who doesn't use this tool can't say what happened after one read: no setup, unexplained terms, stacked identifiers, wall of text. | Followable with effort: one or two unexplained terms, a detour, or a dense paragraph. | One read gives that reader the problem, the cause and the fix in plain words; setup first, terms explained, one clear path (see Clarity in `rules.md`). |
+
+Specificity rewards concrete detail the reader can use. A string of
+unexplained identifiers is a Clarity problem and does not raise
+Specificity. Depth and clarity are scored separately: a hard topic
+explained simply earns 5 on both.
 
 ## Where each dimension applies
 
 | Used by | On | Dimensions | Threshold |
 |---|---|---|---|
-| Content Reviewer | posted posts (full text) | all 5 | none; feedback only |
+| Content Reviewer | posted posts (full text) | all 6 | none; feedback only |
 | Editor | proposed ideas (topic + test) | depth, specificity, scope, credibility, as *potential* | average >= 3.5, no dimension below 3 |
+
+Clarity is not scored on ideas; the Editor checks that the idea's core
+fits in one plain sentence instead.
 
 For ideas, "specificity" asks whether the topic names a concrete tool,
 setting or failure, and whether its `test` can produce a real number.

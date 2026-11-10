@@ -13,7 +13,7 @@ const ICONS={
 const PLUS='<span class="plus"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg></span>';
 const TABS=[["overview","Overview"],["office","Office"],["queue","Queue"],["posts","Posts"],["coverage","Coverage"],["runs","Runs"]];
 const ST={posted:"Created & Posted",scheduled:"Created & Scheduled",queued:"Not Created / In Queue",dropped:"Dropped"};
-const DIMS=[["senior_depth","Senior depth"],["specificity","Specificity"],["narrow_scope","Narrow scope"],["credibility","Credibility"],["voice","Voice"]];
+const DIMS=[["senior_depth","Senior depth"],["specificity","Specificity"],["narrow_scope","Narrow scope"],["credibility","Credibility"],["voice","Voice"],["clarity","Clarity"]];
 const HORIZON=13;
 const S={d:null,err:null,tab:"overview",runId:null,sort:"date",loaded:false};
 const $=s=>document.querySelector(s);
@@ -200,7 +200,7 @@ function viewPosts(){
   const sorted=sc.slice().sort((a,b)=>S.sort==="high"?b.score-a.score:S.sort==="low"?a.score-b.score:String(b.date).localeCompare(String(a.date)));
   if(!sc.length)return `<div class="empty glass"><span class="eyebrow">No scores yet</span><h2>Nothing scored in this run</h2><p class="muted">Run <code>/linkedin-ideas</code> to score your published posts.</p></div>`;
   return `<div class="enter" style="display:flex;flex-direction:column;gap:22px">
-  <section class="page-hero"><span class="eyebrow">Content quality · ${esc(fmtDate(iso(r.run_at)))}</span><h1><span class="tone">Content score</span>${f1(avg)} out of 5</h1><p>Scored by the Content Reviewer for senior depth, specificity, scope, credibility and voice. Reactions and impressions are shown for context and never count.</p></section>
+  <section class="page-hero"><span class="eyebrow">Content quality · ${esc(fmtDate(iso(r.run_at)))}</span><h1><span class="tone">Content score</span>${f1(avg)} out of 5</h1><p>Scored by the Content Reviewer for senior depth, specificity, scope, credibility, voice and clarity. Reactions and impressions are shown for context and never count.</p></section>
   <section class="glass card scorewrap">${scoreRing(avg,132)}
     <div class="scgrid">${da.map(x=>`<div class="scrow"><span>${esc(x.l)}</span><span class="mono">${f1(x.v)}</span><div class="meter"><i style="width:${x.v!=null?x.v/5*100:0}%;background:var(--accent)"></i></div>${x===lo?'<small>Lowest across your posts</small>':x===hi?'<small>Highest across your posts</small>':""}</div>`).join("")}</div></section>
   <section><div class="sec-h"><h2>Posts</h2><span class="muted">${sc.length} scored</span><div class="segbtn" role="group" aria-label="Sort posts">${[["date","Newest"],["high","Highest"],["low","Lowest"]].map(([k,l])=>`<button data-sort="${k}" aria-pressed="${S.sort===k}">${l}</button>`).join("")}</div></div>

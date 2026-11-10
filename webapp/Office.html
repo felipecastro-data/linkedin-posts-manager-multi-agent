@@ -34,7 +34,7 @@ const AGENTS=[
   desc:"Reads the Posts Schedule, Pillars and Lenses from the sheet and the full text of every LinkedIn post through Chrome, then matches each post to its row by the publish date hidden in its URL.",
   does:["Reads the sheet tables","Reads every post's full text","Matches posts to rows by exact date"]},
  {id:"reviewer",name:"Content Reviewer",role:"Scores published posts",kind:"Claude subagent",style:"C",hood:"#424449",shell:"#303237",accent:"#b59cff",seat:{side:"R",z:-0.67},
-  desc:"Scores each published post 1 to 5 on senior depth, specificity, narrow scope, credibility and voice. Engagement is recorded for context and never counts.",
+  desc:"Scores each published post 1 to 5 on senior depth, specificity, narrow scope, credibility, voice and clarity. Engagement is recorded for context and never counts.",
   does:["Scores five dimensions per post","Notes recurring rule slips","Finds what the best posts share"]},
  {id:"editor",name:"Editor",role:"Reviews every idea",kind:"Claude subagent",style:"C",hood:"#36383d",shell:"#292b30",accent:"#ff6f5e",seat:{side:"R",z:0.67},
   desc:"Independent reviewer. Checks every proposed idea for duplicates, scope, feasibility and banned wording, and scores its potential. Sends the queue back once, then labels what is left.",

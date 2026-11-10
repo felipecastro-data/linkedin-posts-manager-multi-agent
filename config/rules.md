@@ -16,16 +16,38 @@ marked **[ideas]** to proposed topics.
 - Lead with the problem or the lesson, not a brag. "A mistake I made / a
   problem I hit / a decision I had to make, and what I learned" reads as
   useful. "Look what I built" reads as self-promotional. **[ideas]**
-- Structure: problem -> what I did or got wrong -> result. End on the last
+- Structure: setup -> problem -> what I did or got wrong -> result. End on the last
   fact or on what is still unresolved. Grounded and professional.
 - Narrow scope: one decision, not a topic overview. **[ideas]**
+
+## Clarity
+
+Senior topic, simple words. A data engineer who has never used this tool
+should get the problem, the cause and the fix on one read.
+
+- Write one plain sentence first, for yourself: what happened, why, what
+  fixed it, with no product terms. If it can't be written, the post isn't
+  ready. **[ideas]** (the topic's core must fit in one plain sentence)
+- Give the setup in the first paragraph: what I was trying to do, in
+  plain words. Then what broke, then what I found, then the fix. One job
+  per paragraph.
+- One idea per post. Drop detours (a wrong guess gets one sentence, not a
+  paragraph).
+- Explain every tool-specific term the first time in a few plain words
+  ("the driver, the node that coordinates the work").
+- At most one raw identifier (error code, API name, setting name) in the
+  post. Describe the others in words.
+- Paragraphs of at most ~70 words. Most sentences under 20 words.
+- One plain "so" sentence that says what a fact means is allowed. It is
+  not a lesson ending.
 
 ## Length and format
 
 - At most three paragraphs. Short and skimmable.
 - Vary length: sometimes ~80 words, sometimes ~220. Do not always land near 200.
 - Active voice. Contractions and fragments are fine.
-- Vary sentence length on purpose: mix 5-word sentences with 25-word ones.
+- Mostly short sentences, with an occasional longer one (up to ~25
+  words) for rhythm.
 - No emojis. No em dashes or double hyphens. No all-caps.
 
 ## Substance

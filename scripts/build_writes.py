@@ -129,14 +129,14 @@ def main():
         score_rows.append([
             a.run_id, run_date, sheet_date(parse_date(p.get("post_date"))), p.get("pillar") or "",
             p.get("lens") or "", p.get("topic") or "", p["url"],
-            s["senior_depth"], s["specificity"], s["narrow_scope"], s["credibility"], s["voice"],
-            f"=ROUND(AVERAGE(H{n}:L{n}),1)", p.get("note", ""),
+            s["senior_depth"], s["specificity"], s["narrow_scope"], s["credibility"], s["voice"], s["clarity"],
+            f"=ROUND(AVERAGE(H{n}:M{n}),1)", p.get("note", ""),
             *[m.get(k) if m.get(k) is not None else "" for k in ("reactions", "comments", "reposts", "impressions")],
         ])
     if score_rows:
         end = a.scores_next_row + len(score_rows) - 1
-        value_writes.append({"range": f"'{sh['score_tab']}'!A{a.scores_next_row}:R{end}", "values": score_rows})
-        table_updates.append(table_range(sh["score_sheet_id"], 0, max(end, 2), 0, 18, sh["score_table_id"]))
+        value_writes.append({"range": f"'{sh['score_tab']}'!A{a.scores_next_row}:S{end}", "values": score_rows})
+        table_updates.append(table_range(sh["score_sheet_id"], 0, max(end, 2), 0, 19, sh["score_table_id"]))
 
     # Agent Runs
     ops = {}

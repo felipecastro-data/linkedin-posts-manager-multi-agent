@@ -185,8 +185,9 @@ sequenceDiagram
 | Narrow scope | One decision, one bug, one setting, followed through |
 | Credibility | Reproducible in a personal setup; numbers trace to a test; no employer material |
 | Voice | Follows `rules.md`: problem-first, no hype, no emojis, no em dashes |
+| Clarity | A data engineer who never used the tool gets the problem, cause and fix on one read |
 
-The Reviewer applies all five to published posts. The Editor applies the first four to
+The Reviewer applies all six to published posts. The Editor applies the first four to
 proposed ideas as a *potential* score: average ≥ 3.5 and no dimension below 3.
 
 **Rotation** (`config/strategy.toml`):
@@ -405,7 +406,7 @@ so the names below must match exactly. Turn each range into a Sheets table
 
 **Tab `Post Scores`** — header in row 1, columns A:R:
 `Run ID` · `Scored At` · `Post Date` · `Pillar` · `Lens` · `Topic` · `LinkedIn URL` ·
-`Senior Depth` · `Specificity` · `Narrow Scope` · `Credibility` · `Voice` · `Score` · `Notes` ·
+`Senior Depth` · `Specificity` · `Narrow Scope` · `Credibility` · `Voice` · `Clarity` · `Score` · `Notes` ·
 `Reactions` · `Comments` · `Reposts` · `Impressions`
 
 **Tab `Agent Runs`** — header in row 1, columns A:M:
