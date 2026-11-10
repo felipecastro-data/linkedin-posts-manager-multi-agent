@@ -10,8 +10,8 @@ import sys
 
 from common import parse_date, read_json, write_json
 
-SCHEDULE_COLUMNS = ["Date", "Pillar", "Lenses", "Topic", "Status", "Rationale", "Source", "LinkedIn URL"]
-KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url"]
+SCHEDULE_COLUMNS = ["Date", "Pillar", "Lenses", "Topic", "Status", "Rationale", "Source", "LinkedIn URL", "Shape"]
+KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url", "shape"]
 
 
 def cell(rows, r, c):

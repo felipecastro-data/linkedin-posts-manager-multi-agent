@@ -15,6 +15,8 @@ const TABS=[["overview","Overview"],["office","Office"],["queue","Queue"],["post
 const ST={posted:"Created & Posted",scheduled:"Created & Scheduled",queued:"Not Created / In Queue",dropped:"Dropped"};
 const DIMS=[["senior_depth","Senior depth"],["specificity","Specificity"],["narrow_scope","Narrow scope"],["credibility","Credibility"],["voice","Voice"],["clarity","Clarity"]];
 const HORIZON=13;
+/* Post shapes from config/post_template.md (Shape column on the schedule). */
+const SHAPES={A:"Problem, fix, cost",B:"Mid-action",C:"One paragraph",D:"Result first",E:"Mistake first"};
 const S={d:null,err:null,tab:"overview",runId:null,sort:"date",loaded:false};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -59,6 +61,12 @@ function upcoming(){return sched().filter(r=>(r.status===ST.scheduled||r.status=
 function changeIndex(){const m={};const r=runs().find(x=>(x.change_log||[]).length);(r?r.change_log:[]).forEach(e=>{if(e.op!=="DROP")m[e.date+"|"+e.topic]=e});return m}
 function statusChip(s){return s===ST.posted?'<span class="chip">Posted</span>':s===ST.scheduled?'<span class="chip good">Scheduled</span>':s===ST.dropped?'<span class="chip crit">Dropped</span>':'<span class="chip med">Queued</span>'}
 const shortStatus=s=>s===ST.posted?"Posted":s===ST.scheduled?"Scheduled":s===ST.dropped?"Dropped":"Queued";
+function shapeChip(s){return SHAPES[s]?`<span class="chip" title="Post shape ${esc(s)} (config/post_template.md)">Shape ${esc(s)} · ${esc(SHAPES[s])}</span>`:""}
+/* Last 6 posted rows with a shape, then every upcoming one: the rotation the Strategist keeps varied. */
+function shapeStrip(up){const past=sched().filter(r=>r.status===ST.posted&&SHAPES[r.shape]&&r.iso&&r.iso<=S.d.today).sort((a,b)=>a.iso.localeCompare(b.iso)).slice(-6);
+  const next=up.filter(r=>SHAPES[r.shape]);if(!past.length&&!next.length)return "";
+  return `<section class="glass card"><div class="sec-h"><h2>Shape rotation</h2><span class="muted">Last ${past.length} posted, then the queue. Never the same shape twice in a row, at most 2 in any 6 Saturdays.</span></div>
+  <div class="oc-days" style="grid-template-columns:repeat(auto-fill,minmax(116px,1fr))">${past.concat(next).map(r=>`<div class="oc-day ${r.status===ST.posted?"":"on"}" title="${esc(r.topic)}"><b>${esc(fmtShort(r.iso))} · ${esc(r.shape)}</b><span>${esc(SHAPES[r.shape])}</span></div>`).join("")}</div></section>`}
 function flagged(e){return !!(e&&e.editor&&(e.editor.issues||[]).length)}
 function parseCoverage(s){const out={pillars:{},lenses:{}};String(s||"").split("|").forEach(part=>{const m=part.trim().match(/^(Pillars|Lenses):\s*(.*)$/);if(!m)return;const tgt=m[1]==="Pillars"?out.pillars:out.lenses;
   m[2].split(/,\s*/).forEach(x=>{const mm=x.trim().match(/^(.*)\s(\d+)$/);if(mm)tgt[mm[1]]=+mm[2]})});return out}
@@ -170,7 +178,7 @@ function queueItem(x,ci){
   const pot=ed&&ed.potential?Object.keys(ed.potential).map(k=>{const lbl=(DIMS.find(d=>d[0]===k)||[k,k])[1];return `<div class="scrow"><span>${esc(lbl)}</span><span class="mono">${esc(ed.potential[k])}</span><div class="meter"><i style="width:${ed.potential[k]/5*100}%;background:var(--accent)"></i></div></div>`}).join(""):"";
   return `<details class="item glass" id="q-${esc(x.iso||"")}">
     <summary>${x.iso?`<span class="when"><small>${esc(fmt(x.iso,{month:"short"}))}</small><b>${dt(x.iso).getDate()}</b><small>${esc(fmt(x.iso,{weekday:"short"}))}</small></span>`:'<span class="when"><small>No</small><b>–</b><small>date</small></span>'}
-      <div class="sum-main"><h3>${esc(x.topic)}</h3><div class="chips"><span class="chip acc">${esc(x.pillar)}</span><span class="chip">${esc(x.lens)}</span>${statusChip(x.status)}${x.source?`<span class="chip">${esc(x.source)}</span>`:""}${ed&&ed.avg!=null?`<span class="chip">Editor ${esc(ed.avg)}</span>`:""}${fl?'<span class="chip high">⚑ Editor flag</span>':""}</div></div>${PLUS}</summary>
+      <div class="sum-main"><h3>${esc(x.topic)}</h3><div class="chips"><span class="chip acc">${esc(x.pillar)}</span><span class="chip">${esc(x.lens)}</span>${shapeChip(x.shape)}${statusChip(x.status)}${x.source?`<span class="chip">${esc(x.source)}</span>`:""}${ed&&ed.avg!=null?`<span class="chip">Editor ${esc(ed.avg)}</span>`:""}${fl?'<span class="chip high">⚑ Editor flag</span>':""}</div></div>${PLUS}</summary>
     <div class="item-body"><dl class="kv">
       ${x.rationale?`<dt>Why</dt><dd>${esc(x.rationale)}</dd>`:""}
       ${e&&e.test?`<dt>Test</dt><dd>${esc(e.test)}</dd>`:""}
@@ -187,6 +195,7 @@ function viewQueue(){
   return `<div class="enter" style="display:flex;flex-direction:column;gap:22px">
   <section class="page-hero"><span class="eyebrow">Queue · next ${HORIZON} Saturdays</span><h1><span class="tone">${covered} of ${HORIZON} covered</span>through ${esc(fmtShort(end))}</h1><p>Ideas only: a pillar, a lens and a one-line topic. Open an idea for why it is there and the test that gives the post real numbers.</p></section>
   ${missing.length?`<section class="glass card" style="border-color:var(--high)"><span class="chip high">Gap</span><p style="margin-top:8px">No post planned on ${missing.map(d=>esc(fmtShort(d))).join(", ")}.</p></section>`:""}
+  ${shapeStrip(up)}
   <div class="list">${inH.map(x=>queueItem(x,ci)).join("")}</div>
   ${back.length?`<div class="cut"><span class="eyebrow">Backlog · ${back.length}</span></div><div class="list">${back.map(x=>queueItem(x,ci)).join("")}</div>`:""}
   ${drops.length?`<details class="item glass"><summary><div class="sum-main"><h3>Dropped ideas</h3><span class="muted" style="font-size:.86rem">${drops.length} kept for the record, never proposed again</span></div>${PLUS}</summary><div class="item-body" style="padding-left:20px"><div class="rows">${drops.map(x=>`<div class="row"><span class="tx">${esc(x.topic)}<small>${esc(x.pillar)} · ${esc(x.lens)} · ${esc(x.rationale)}</small></span></div>`).join("")}</div></div></details>`:""}
@@ -197,6 +206,7 @@ function viewQueue(){
 function viewPosts(){
   const r=run();const sc=scoresFor(r);const avg=avgOf(sc.map(s=>s.score).filter(v=>v!=null));const da=dimAvgs(sc);
   const valid=da.filter(x=>x.v!=null);const lo=valid.length?valid.reduce((a,b)=>b.v<a.v?b:a):null,hi=valid.length?valid.reduce((a,b)=>b.v>a.v?b:a):null;
+  const shapeOf={};sched().forEach(x=>{if(x.shape)shapeOf[x.topic]=x.shape});
   const sorted=sc.slice().sort((a,b)=>S.sort==="high"?b.score-a.score:S.sort==="low"?a.score-b.score:String(b.date).localeCompare(String(a.date)));
   if(!sc.length)return `<div class="empty glass"><span class="eyebrow">No scores yet</span><h2>Nothing scored in this run</h2><p class="muted">Run <code>/linkedin-ideas</code> to score your published posts.</p></div>`;
   return `<div class="enter" style="display:flex;flex-direction:column;gap:22px">
@@ -204,7 +214,7 @@ function viewPosts(){
   <section class="glass card scorewrap">${scoreRing(avg,132)}
     <div class="scgrid">${da.map(x=>`<div class="scrow"><span>${esc(x.l)}</span><span class="mono">${f1(x.v)}</span><div class="meter"><i style="width:${x.v!=null?x.v/5*100:0}%;background:var(--accent)"></i></div>${x===lo?'<small>Lowest across your posts</small>':x===hi?'<small>Highest across your posts</small>':""}</div>`).join("")}</div></section>
   <section><div class="sec-h"><h2>Posts</h2><span class="muted">${sc.length} scored</span><div class="segbtn" role="group" aria-label="Sort posts">${[["date","Newest"],["high","Highest"],["low","Lowest"]].map(([k,l])=>`<button data-sort="${k}" aria-pressed="${S.sort===k}">${l}</button>`).join("")}</div></div>
-  <div class="list">${sorted.map(p=>`<details class="item glass" id="p-${esc(p.date)}"><summary>${scoreRing(p.score)}<div class="sum-main"><h3>${esc(p.topic)}</h3><div class="chips"><span class="chip acc">${esc(p.pillar||"Unmapped")}</span><span class="chip">${esc(p.lens||"")}</span><span class="chip">${esc(fmtDate(p.date))}</span></div></div>${PLUS}</summary>
+  <div class="list">${sorted.map(p=>`<details class="item glass" id="p-${esc(p.date)}"><summary>${scoreRing(p.score)}<div class="sum-main"><h3>${esc(p.topic)}</h3><div class="chips"><span class="chip acc">${esc(p.pillar||"Unmapped")}</span><span class="chip">${esc(p.lens||"")}</span>${shapeChip(shapeOf[p.topic])}<span class="chip">${esc(fmtDate(p.date))}</span></div></div>${PLUS}</summary>
     <div class="item-body"><div class="dims">${DIMS.map(([k,l])=>`<div class="scrow"><span>${l}</span><span class="mono">${p[k]==null?"–":p[k]}</span><div class="meter"><i style="width:${(p[k]||0)/5*100}%;background:var(--accent)"></i></div></div>`).join("")}</div>
     ${p.note?`<p>${esc(p.note)}</p>`:""}
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" style="font-size:.86rem;font-weight:500">Open on LinkedIn →</a>`:""}<span class="ctx">Context only: ${compact(p.reactions)} reactions · ${compact(p.comments)} comments · ${compact(p.impressions)} impressions</span></div></div></details>`).join("")}</div></section>

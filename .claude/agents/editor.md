@@ -34,7 +34,11 @@ new ideas; you say what is wrong and what a fix should achieve.
    negation-reversal). Max 25 words. Plain core: the idea's point can be
    said in one plain sentence a data engineer who doesn't use this tool
    would follow. If it only makes sense with product jargon, flag it.
-5. **Potential score** per `rubric.md`, ideas column: senior depth,
+5. **Shape fit**: the idea's `shape` (A-E in `config/post_template.md`)
+   suits its story. D and C need a real headline number from the `test`;
+   E needs a plausible wrong first assumption. Flag a shape the idea
+   can't honestly fill.
+6. **Potential score** per `rubric.md`, ideas column: senior depth,
    specificity, narrow scope, credibility, 1-5 each. Fails if the average
    is below 3.5 or any dimension is below 3.
 

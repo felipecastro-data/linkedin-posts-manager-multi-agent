@@ -24,7 +24,7 @@ def d(iso):
 
 
 def check(sheet, proposal, cfg, today):
-    st, rot, ideas = cfg["status"], cfg["rotation"], cfg["ideas"]
+    st, rot, ideas, shp = cfg["status"], cfg["rotation"], cfg["ideas"], cfg["shapes"]
     errors, warnings = [], []
     rows = {r["row"]: r for r in sheet["schedule"]}
     queued_rows = {r["row"] for r in sheet["schedule"] if r["status"] == st["queued"]}
@@ -60,6 +60,8 @@ def check(sheet, proposal, cfg, today):
             errors.append(f"{label}: missing test")
         if not (q.get("rationale") or "").strip():
             errors.append(f"{label}: missing rationale")
+        if q.get("shape") not in shp["names"]:
+            errors.append(f"{label}: shape '{q.get('shape')}' is not one of {', '.join(shp['names'])}")
         try:
             qd = d(q["date"])
         except (KeyError, TypeError, ValueError):
@@ -82,31 +84,36 @@ def check(sheet, proposal, cfg, today):
             errors.append(f"{s.isoformat()}: no post in the horizon slot")
 
     # Rotation over the combined timeline
-    timeline = [{"date": d(r["date"]), "pillar": r["pillar"], "lens": r["lens"], "queued": False,
-                 "topic": r["topic"]} for r in fixed]
-    timeline += [{"date": d(q["date"]), "pillar": q.get("pillar"), "lens": q.get("lens"), "queued": True,
-                  "topic": q.get("topic", "")} for q in queue if q.get("date")]
+    timeline = [{"date": d(r["date"]), "pillar": r["pillar"], "lens": r["lens"], "shape": r.get("shape") or None,
+                 "queued": False, "topic": r["topic"]} for r in fixed]
+    timeline += [{"date": d(q["date"]), "pillar": q.get("pillar"), "lens": q.get("lens"), "shape": q.get("shape"),
+                  "queued": True, "topic": q.get("topic", "")} for q in queue if q.get("date")]
     timeline.sort(key=lambda e: e["date"])
     span = timedelta(weeks=rot["window_saturdays"] - 1)
 
-    if rot["pillar_no_back_to_back"]:
+    for key, on in (("pillar", rot["pillar_no_back_to_back"]), ("shape", shp["no_back_to_back"])):
+        if not on:
+            continue
         for a, b in zip(timeline, timeline[1:]):
-            if (b["date"] - a["date"]).days == 7 and a["pillar"] == b["pillar"] and (a["queued"] or b["queued"]):
-                errors.append(f"{a['date']} and {b['date']}: {a['pillar']} on back-to-back Saturdays")
+            if (b["date"] - a["date"]).days == 7 and a[key] and a[key] == b[key] and (a["queued"] or b["queued"]):
+                errors.append(f"{a['date']} and {b['date']}: {key} {a[key]} on back-to-back Saturdays")
 
-    for key, limit in (("pillar", rot["pillar_max_per_window"]), ("lens", rot["lens_max_per_window"])):
+    shape_span = timedelta(weeks=shp["window_saturdays"] - 1)
+    for key, limit, win, weeks in (("pillar", rot["pillar_max_per_window"], span, rot["window_saturdays"]),
+                                   ("lens", rot["lens_max_per_window"], span, rot["window_saturdays"]),
+                                   ("shape", shp["max_per_window"], shape_span, shp["window_saturdays"])):
         flagged = set()
-        for q in (e for e in timeline if e["queued"]):
+        for q in (e for e in timeline if e["queued"] and e[key]):
             worst = 0
-            start = q["date"] - span
+            start = q["date"] - win
             while start <= q["date"]:
-                n = sum(1 for e in timeline if e[key] == q[key] and start <= e["date"] <= start + span)
+                n = sum(1 for e in timeline if e[key] == q[key] and start <= e["date"] <= start + win)
                 worst = max(worst, n)
                 start += timedelta(weeks=1)
             if worst > limit and (q[key], q["date"]) not in flagged:
                 flagged.add((q[key], q["date"]))
                 errors.append(f"{q['date']}: {key} '{q[key]}' appears {worst} times in a "
-                              f"{rot['window_saturdays']}-Saturday window (max {limit})")
+                              f"{weeks}-Saturday window (max {limit})")
 
     cooldown = timedelta(weeks=rot["pillar_lens_cooldown_weeks"])
     for q in (e for e in timeline if e["queued"]):
@@ -141,15 +148,15 @@ def build_diff(sheet, proposal):
     diff = []
     for q in proposal.get("queue", []):
         src = rows.get(q.get("origin_row"))
-        entry = {k: q.get(k) for k in ("date", "pillar", "lens", "topic", "rationale", "test", "origin_row")}
+        entry = {k: q.get(k) for k in ("date", "pillar", "lens", "topic", "shape", "rationale", "test", "origin_row")}
         if not src:
             entry.update(op="ADD", source="Agent")
         else:
             moved = src["date"] != q.get("date")
-            edited = any(src[k] != q.get(k) for k in ("pillar", "lens", "topic"))
+            edited = any(src[k] != q.get(k) for k in ("pillar", "lens", "topic", "shape"))
             entry["op"] = "EDIT+MOVE" if moved and edited else "MOVE" if moved else "EDIT" if edited else "KEEP"
             entry["source"] = "Agent" if src["topic"] != q.get("topic") else (src["source"] or "Me")
-            entry["was"] = {k: src[k] for k in ("date", "pillar", "lens", "topic")}
+            entry["was"] = {k: src[k] for k in ("date", "pillar", "lens", "topic", "shape")}
         diff.append(entry)
     diff.sort(key=lambda e: e["date"] or "")
     for x in proposal.get("drops", []):
@@ -163,19 +170,19 @@ def render_md(diff, errors, warnings, before, after):
     def esc(s):
         return (s or "").replace("|", "/").replace("\n", " ")
 
-    out = ["| Date | Change | Pillar | Lens | Topic | Why / test |", "|---|---|---|---|---|---|"]
+    out = ["| Date | Change | Pillar | Lens | Shape | Topic | Why / test |", "|---|---|---|---|---|---|---|"]
     for e in diff:
         if e["op"] == "DROP":
             w = e["was"]
-            out.append(f"| ~~{w['date']}~~ | DROP | {esc(w['pillar'])} | {esc(w['lens'])} | "
+            out.append(f"| ~~{w['date']}~~ | DROP | {esc(w['pillar'])} | {esc(w['lens'])} | | "
                        f"~~{esc(w['topic'])}~~ | {esc(e['reason'])} |")
             continue
         was = ""
         if e["op"] not in ("ADD", "KEEP"):
             w = e["was"]
-            changed = [f"{k}: {esc(w[k])}" for k in ("date", "pillar", "lens", "topic") if w[k] != e[k]]
+            changed = [f"{k}: {esc(w[k])}" for k in ("date", "pillar", "lens", "topic", "shape") if w[k] != e[k]]
             was = "<br>was " + "; ".join(changed)
-        out.append(f"| {e['date']} | {e['op']} | {esc(e['pillar'])} | {esc(e['lens'])} | "
+        out.append(f"| {e['date']} | {e['op']} | {esc(e['pillar'])} | {esc(e['lens'])} | {esc(e['shape'])} | "
                    f"{esc(e['topic'])}{was} | {esc(e['rationale'])}<br>test: {esc(e['test'])} |")
     out += ["", f"Coverage before: {before}", f"Coverage after: {after}"]
     if errors:

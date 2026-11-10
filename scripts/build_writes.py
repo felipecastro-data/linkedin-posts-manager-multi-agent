@@ -32,18 +32,18 @@ def schedule_rows(sheet, diff, matches, cfg, run_date):
         if r["status"] in (st["posted"], st["scheduled"]):
             url = r["url"] or urls.get(r["row"], "")
             active.append((r["date"], [sheet_date(parse_date(r["date"])), r["pillar"], r["lens"], r["topic"],
-                                       r["status"], r["rationale"], r["source"] or "Me", url]))
+                                       r["status"], r["rationale"], r["source"] or "Me", url, r["shape"]]))
         elif r["status"] == st["dropped"]:
-            dropped.append(["", r["pillar"], r["lens"], r["topic"], r["status"], r["rationale"], r["source"], r["url"]])
+            dropped.append(["", r["pillar"], r["lens"], r["topic"], r["status"], r["rationale"], r["source"], r["url"], r["shape"]])
     for e in diff:
         if e["op"] == "DROP":
             w = e["was"]
             src = next(r for r in sheet["schedule"] if r["row"] == e["origin_row"])
             dropped.append(["", w["pillar"], w["lens"], w["topic"], st["dropped"],
-                            f"Dropped {run_date}: {e['reason']}", src["source"] or "Me", ""])
+                            f"Dropped {run_date}: {e['reason']}", src["source"] or "Me", "", src["shape"]])
         else:
             active.append((e["date"], [sheet_date(parse_date(e["date"])), e["pillar"], e["lens"], e["topic"],
-                                       st["queued"], e.get("rationale") or "", e["source"], ""]))
+                                       st["queued"], e.get("rationale") or "", e["source"], "", e.get("shape") or ""]))
     active.sort(key=lambda x: x[0] or "9999")
     return [v for _, v in active] + dropped
 
@@ -61,8 +61,8 @@ def apply_approval(sheet, diff, approved, cfg):
         elif e["op"] != "ADD":
             r = rows[e["origin_row"]]
             out.append({"op": "KEEP", "origin_row": r["row"], "date": r["date"], "pillar": r["pillar"],
-                        "lens": r["lens"], "topic": r["topic"], "rationale": r["rationale"],
-                        "source": r["source"] or "Me"})
+                        "lens": r["lens"], "topic": r["topic"], "shape": r["shape"],
+                        "rationale": r["rationale"], "source": r["source"] or "Me"})
     return out
 
 
@@ -117,7 +117,7 @@ def main():
                      "values": sched}]
     table_updates = []
     if len(sched) > len(sheet["schedule"]):
-        table_updates.append(table_range(sh["schedule_sheet_id"], header - 1, last, 1, 9, sh["schedule_table_id"]))
+        table_updates.append(table_range(sh["schedule_sheet_id"], header - 1, last, 1, 10, sh["schedule_table_id"]))
 
     # Post Scores
     metrics = {p["url"]: p for p in matches.get("matched", []) + matches.get("unmatched_posts", [])}

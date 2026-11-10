@@ -7,8 +7,8 @@
  */
 
 const DEFAULT_SPREADSHEET_ID = '1zKbL54y6twj1ySJu1zjPuJwoo8frfXE1aBc82jsbMsA';
-const SCHEDULE_COLUMNS = ['Date', 'Pillar', 'Lenses', 'Topic', 'Status', 'Rationale', 'Source', 'LinkedIn URL'];
-const SCHEDULE_KEYS = ['date', 'pillar', 'lens', 'topic', 'status', 'rationale', 'source', 'url'];
+const SCHEDULE_COLUMNS = ['Date', 'Pillar', 'Lenses', 'Topic', 'Status', 'Rationale', 'Source', 'LinkedIn URL', 'Shape'];
+const SCHEDULE_KEYS = ['date', 'pillar', 'lens', 'topic', 'status', 'rationale', 'source', 'url', 'shape'];
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index').evaluate()
@@ -72,7 +72,7 @@ function readTab_(ss, name) {
 
 function getData() {
   const ss = spreadsheet_();
-  const rows = ss.getSheetByName('LinkedIn Posts').getRange('A1:I300').getDisplayValues();
+  const rows = ss.getSheetByName('LinkedIn Posts').getRange('A1:J300').getDisplayValues();
   const runs = readTab_(ss, 'Agent Runs').map(r => {
     try { r.change_log = r.change_log ? JSON.parse(r.change_log) : []; }
     catch (e) { r.change_log = []; }

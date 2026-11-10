@@ -34,7 +34,7 @@ steps below. Ask questions only when a step is blocked.
 
 ## Step 1 — Collect
 
-**Sheet.** `get_values` on `'LinkedIn Posts'!A1:I300` (spreadsheet ID in
+**Sheet.** `get_values` on `'LinkedIn Posts'!A1:J300` (spreadsheet ID in
 config). Save the JSON response as `runs/<RUN_ID>/sheet_raw.json`, then:
 `python3 scripts/parse_sheet.py runs/<RUN_ID>/sheet_raw.json runs/<RUN_ID>/sheet.json`
 
@@ -128,7 +128,7 @@ No browser, no web search, do not modify other files."
 Launch one general-purpose subagent: "Read `.claude/agents/content-strategist.md`
 and follow it. Inputs: `sheet.json`, `coverage.json`, `scores.json`,
 `matches.json` in `runs/<RUN_ID>/`, and `config/rules.md`,
-`config/rubric.md`, `config/strategy.toml`. Today is <TODAY>. Output:
+`config/rubric.md`, `config/strategy.toml`, `config/post_template.md`. Today is <TODAY>. Output:
 `runs/<RUN_ID>/proposal_v1.json`. Before finishing, run
 `python3 scripts/validate_proposal.py runs/<RUN_ID>/sheet.json runs/<RUN_ID>/proposal_v1.json runs/<RUN_ID>/validation_v1.json runs/<RUN_ID>/diff_v1.md --today <TODAY>`
 and fix every error it reports (re-run until it exits 0, max 4 attempts)."
@@ -140,7 +140,7 @@ and fix every error it reports (re-run until it exits 0, max 4 attempts)."
 2. Launch the Editor (general-purpose subagent): "Read `.claude/agents/editor.md`
    and follow it. Inputs: `proposal_v1.json`, `validation_v1.json`,
    `sheet.json`, `matches.json` in `runs/<RUN_ID>/`, `config/rules.md`,
-   `config/rubric.md`. Output: `runs/<RUN_ID>/review_v1.json`."
+   `config/rubric.md`, `config/post_template.md`. Output: `runs/<RUN_ID>/review_v1.json`."
 3. If the verdict is `revise` or validation has errors, launch the
    Strategist again in revision mode with `proposal_v1.json`,
    `review_v1.json`, `validation_v1.json`; output `proposal_v2.json`, with
@@ -185,7 +185,7 @@ the Schedule write but still log the run (steps 8.3-8.5).
 3. Send `table_updates` from `writes.json` in ONE `update_spreadsheet`
    call (it grows the tables first).
 4. Send each `value_writes` entry with `update_values`.
-5. Read back `'LinkedIn Posts'!B21:I` and the new Post Scores and Agent
+5. Read back `'LinkedIn Posts'!B21:J` and the new Post Scores and Agent
    Runs rows. Check the queue matches the approved diff, Posted and
    Scheduled rows are unchanged, and Score cells show numbers.
 

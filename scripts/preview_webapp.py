@@ -19,7 +19,7 @@ from common import ROOT, read_json
 
 WEBAPP = ROOT / "webapp"
 PAGES_OUT = ROOT / "cloudflare" / "public" / "index.html"
-SCHEDULE_KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url"]
+SCHEDULE_KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url", "shape"]
 
 
 def slug(h):

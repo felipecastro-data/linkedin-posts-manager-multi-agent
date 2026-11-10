@@ -198,6 +198,7 @@ proposed ideas as a *potential* score: average ≥ 3.5 and no dimension below 3.
 | Pillar per 13-Saturday window | ≤ 2 |
 | Same pillar back to back | Never |
 | Same pillar + lens | Not within 12 weeks |
+| Post shape (A-E) | Never back to back; ≤ 2 per 6-Saturday window |
 | Lens per 13-Saturday window | ≤ 2 |
 | "X vs Y" framed topics | ≤ 1 in 4 |
 | Topic length | ≤ 25 words, one sentence |
@@ -356,8 +357,7 @@ config/
   strategy.toml                    sheet IDs, horizon, rotation limits, thresholds
   rules.md                         writing voice and banned patterns (single source)
   rubric.md                        scoring rubric
-  case_template.md                 prompt to build a real-data case for an idea (Claude in Chrome)
-  post_template.md                 prompt to draft the post from that case
+  post_template.md                 one prompt per post: build a real-data case (Claude in Chrome), then draft from it
 scripts/
   parse_sheet.py                   raw get_values -> sheet.json
   match.py                         activity-ID date decode + post/row matching
@@ -410,7 +410,7 @@ so the names below must match exactly. Turn each range into a Sheets table
 |---|---|---|
 | Pillars | a cell reading `Pillars` above the schedule (e.g. B4), one pillar per row below it, no blank rows | Your content themes (e.g. PySpark, SQL, Data Lakehouse) |
 | Lenses | a cell reading `Lenses` (e.g. D4), one lens per row below it | The angle a post takes (e.g. Performance, Cost, Trade-offs) |
-| Posts Schedule | header row 21, columns B:I | `Date` · `Pillar` · `Lenses` · `Topic` · `Status` · `Rationale` · `Source` · `LinkedIn URL` |
+| Posts Schedule | header row 21, columns B:J | `Date` · `Pillar` · `Lenses` · `Topic` · `Status` · `Rationale` · `Source` · `LinkedIn URL` · `Shape` |
 
 - `Status` dropdown: `Created & Posted`, `Created & Scheduled`, `Not Created / In Queue`, `Dropped`.
 - `Source` dropdown: `Me`, `Agent`.

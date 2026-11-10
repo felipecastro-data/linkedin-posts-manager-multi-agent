@@ -6,8 +6,8 @@
 
 const SHEETS = "https://sheets.googleapis.com/v4/spreadsheets/";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
-const SCHEDULE_COLUMNS = ["Date", "Pillar", "Lenses", "Topic", "Status", "Rationale", "Source", "LinkedIn URL"];
-const SCHEDULE_KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url"];
+const SCHEDULE_COLUMNS = ["Date", "Pillar", "Lenses", "Topic", "Status", "Rationale", "Source", "LinkedIn URL", "Shape"];
+const SCHEDULE_KEYS = ["date", "pillar", "lens", "topic", "status", "rationale", "source", "url", "shape"];
 const POSTS_TAB = "LinkedIn Posts";
 const TABS = ["Post Scores", "Agent Runs"];
 
@@ -50,7 +50,7 @@ async function getData(env) {
   // readTab_ in Code.js returns [] for a missing tab; batchGet fails on one, so ask only for those that exist.
   const titles = new Set(meta.sheets.map(s => s.properties.title));
   const tabs = TABS.filter(t => titles.has(t));
-  const ranges = [POSTS_TAB + "!A1:I300", ...tabs].map(r => "ranges=" + encodeURIComponent(quoteRange(r)));
+  const ranges = [POSTS_TAB + "!A1:J300", ...tabs].map(r => "ranges=" + encodeURIComponent(quoteRange(r)));
   const got = await sheets(env, base + "/values:batchGet?valueRenderOption=FORMATTED_VALUE&" + ranges.join("&"));
   const values = got.valueRanges.map(v => v.values || []);
   const tab = name => tabs.includes(name) ? readTab(values[1 + tabs.indexOf(name)]) : [];
@@ -73,7 +73,7 @@ async function getData(env) {
   });
 }
 
-// "LinkedIn Posts!A1:I300" -> "'LinkedIn Posts'!A1:I300"
+// "LinkedIn Posts!A1:J300" -> "'LinkedIn Posts'!A1:J300"
 function quoteRange(r) {
   const [name, cells] = r.split("!");
   return "'" + name.replace(/'/g, "''") + "'" + (cells ? "!" + cells : "");

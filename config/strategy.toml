@@ -4,11 +4,11 @@
 [sheet]
 spreadsheet_id = "1zKbL54y6twj1ySJu1zjPuJwoo8frfXE1aBc82jsbMsA"
 tab = "LinkedIn Posts"
-read_range = "'LinkedIn Posts'!A1:I300"
+read_range = "'LinkedIn Posts'!A1:J300"
 schedule_table_id = "332332752"
 schedule_sheet_id = 330526701
 schedule_first_col = "B"
-schedule_last_col = "I"
+schedule_last_col = "J"
 schedule_header_row = 21
 score_tab = "Post Scores"
 score_table_id = "2078286160"
@@ -43,6 +43,15 @@ lens_max_per_window = 2
 prioritize_unused = true            # soft rule for the Strategist
 comparison_max_ratio = 0.25         # at most 1 in 4 queued topics framed as "X vs Y"
 skip_weak_pairs = true              # soft rule: do not force pillar x lens pairs that don't fit
+
+[shapes]
+# Post shapes from config/post_template.md. Every queued idea gets one.
+# Rotation is counted over posted + scheduled + queued rows by date; rows
+# with no shape (posts from before the template) are ignored.
+names = { A = "Problem, fix, cost", B = "Mid-action", C = "One paragraph", D = "Result first", E = "Mistake first" }
+no_back_to_back = true
+window_saturdays = 6
+max_per_window = 2
 
 [ideas]
 topic_max_words = 25
