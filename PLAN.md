@@ -93,14 +93,16 @@ The Content Reviewer scores each posted post 1-5 on:
 | Narrow scope | One decision, one bug, one setting. Not a topic overview. |
 | Credibility | Grounded in something reproducible; no fabricated numbers; no employer or client material. |
 | Voice | Follows `config/rules.md`: no hype, no banned patterns, no emojis or em dashes, problem-first framing. |
+| Clarity | A data engineer who never used the tool gets the problem, cause and fix on one read. |
 
-Post score = average of the five, plus a one-line note per dimension. The
+Post score = average of the six, plus a one-line note per dimension. The
 Strategist uses the scores to see which pillars and lenses produced his
 strongest senior content. Reactions, comments and impressions are still
 saved in `Post Scores` for context, with no weight in any decision.
 
-The Editor applies the first four dimensions (minus Voice) to proposed
-ideas as a *potential* score. Ideas under 3.5 go back for revision.
+The Editor applies the first four dimensions (minus Voice and Clarity) to
+proposed ideas as a *potential* score. Ideas under 3.5 go back for revision.
+For clarity it only checks that each idea's core fits in one plain sentence.
 
 ## Strategy rules (defaults in `config/strategy.toml`)
 
@@ -139,10 +141,11 @@ Status, `Rationale` (G), `Source` (H, dropdown Me / Agent; existing rows set
 to Me), `LinkedIn URL` (I). Status is a dropdown with the four values above.
 
 New tabs (also the web app's data), each a Sheets table starting at A1:
-- `Post Scores` (A:R): Run ID, Scored At, Post Date, Pillar, Lens, Topic,
+- `Post Scores` (A:S): Run ID, Scored At, Post Date, Pillar, Lens, Topic,
   LinkedIn URL, Senior Depth, Specificity, Narrow Scope, Credibility, Voice,
-  Score, Notes, Reactions, Comments, Reposts, Impressions. Score is written
-  as a formula, `=ROUND(AVERAGE(Hn:Ln),1)`, not a typed number.
+  Clarity, Score, Notes, Reactions, Comments, Reposts, Impressions. Score is
+  written as a formula, `=ROUND(AVERAGE(Hn:Mn),1)`, not a typed number.
+  Rows from before 2026-11-10 have no Clarity and average five dimensions.
 - `Agent Runs` (A:L): Run ID, Run At, Summary, Strategist Feedback,
   Pillar / Lens Suggestions, Coverage Before, Coverage After, Added, Edited,
   Dropped, Moved, Change Log (JSON).

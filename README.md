@@ -116,7 +116,7 @@ The Office seats six roles. Three are LLM subagents; three are the orchestrator 
 |---|---|---|---|
 | **Coordinator** | Claude Code session | Runs the skill, launches subagents, shows the diff, asks for approval | task list, approval view |
 | **Collector** | scripts + connectors | Reads the sheet and LinkedIn, matches posts to rows, computes coverage | `sheet.json`, `posts.json`, `matches.json`, `coverage.json` |
-| **Content Reviewer** | LLM subagent | Scores each published post 1-5 on five dimensions with a note each | `scores.json` |
+| **Content Reviewer** | LLM subagent | Scores each published post 1-5 on six dimensions with a note each | `scores.json` |
 | **Content Strategist** | LLM subagent | Proposes the queue: add, edit, drop or move, with a reason and a test for each | `proposal_v1.json`, `proposal_v2.json` |
 | **Editor** | LLM subagent | Independent critic: duplicates, scope, feasibility, banned wording, potential score | `review_v1.json`, `review_v2.json` |
 | **Sheet Writer** | scripts + connector | Builds exact writes, sends them, reads back and checks | `writes.json`, sheet rows |
@@ -233,6 +233,17 @@ xychart-beta
 
 Best post 4.6, weakest 2.6. Narrow scope is the strength; Voice is the weakest
 dimension, which is why the Strategist's feedback focuses on length and banned openers.
+
+Clarity became the sixth dimension on 2026-11-10. The run that day
+(`r20261110-0935`, 14 posts) averaged 3.45:
+
+```mermaid
+xychart-beta
+    title "Average score by dimension (14 posts, Nov 10 run)"
+    x-axis ["Senior depth", "Specificity", "Narrow scope", "Credibility", "Voice", "Clarity"]
+    y-axis "Score (1-5)" 0 --> 5
+    bar [3.0, 3.86, 4.0, 3.64, 2.79, 3.43]
+```
 
 ### Queue changes
 
