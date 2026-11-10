@@ -1,6 +1,8 @@
 # LinkedIn post drafting template
 
-Paste into a new chat and fill the [INSERT] fields. Kept in line with
+Paste into a new chat and fill the [INSERT] fields. Build the case
+first with `config/case_template.md`; its evidence pack fills Topic,
+Lens and Real anchor, and answers the BEFORE DRAFTING question. Kept in line with
 `config/rules.md`, which the Content Reviewer scores posts against.
 
 ```

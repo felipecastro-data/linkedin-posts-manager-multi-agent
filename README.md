@@ -342,6 +342,8 @@ config/
   strategy.toml                    sheet IDs, horizon, rotation limits, thresholds
   rules.md                         writing voice and banned patterns (single source)
   rubric.md                        scoring rubric
+  case_template.md                 prompt to build a real-data case for an idea (Claude in Chrome)
+  post_template.md                 prompt to draft the post from that case
 scripts/
   parse_sheet.py                   raw get_values -> sheet.json
   match.py                         activity-ID date decode + post/row matching
